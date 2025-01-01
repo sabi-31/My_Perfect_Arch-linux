@@ -1,4 +1,4 @@
-# My_Perfect_Arch-linux
+# My_Perfect_Arch-linux Test
 
 ### This is a guide/personal reference/explanation of an ideal arch linux base install + all the good ricing on top of it. I am mainly creating this as a personal reference guide, but hope it's also helpful to someone else learning this stuff.
 
