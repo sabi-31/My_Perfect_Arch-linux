@@ -90,6 +90,16 @@ Run lsblk to verify partitions
 		cryptsetup open --type luks ${DISK}2 root
    ```
 
+    <details>
+	<summary>Extras</summary>
+		<pre>
+		Crypttab - possibly not needed with systemd boot
+		Backup LUKS Headers
+		Generate a recovery key
+		Register into tpm
+		</pre>
+	</details>
+
 6. Format Partitons
 	```
 		mkfs.vfat -F32 -n EFI ${DISK}1
@@ -179,6 +189,13 @@ Run lsblk to verify partitions
 
 13. Create UKI and update initramfs
 
+14. Specify root= in kernel parameters
+
+14. Enable Services
+	systemd-resolved
+	systemd-timesyncd
+	NetwrokManager
+	
 14. Bootloader
 
 Packages: ffmpeg, vaapi, gstreamerm mesa,
@@ -191,6 +208,7 @@ Packages: ffmpeg, vaapi, gstreamerm mesa,
 4. AppArmor
 5. [fwupd](https://github.com/fwupd/fwupd)
 6. [Secure Boot 1](https://0pointer.net/blog/unlocking-luks2-volumes-with-tpm2-fido2-pkcs11-security-hardware-on-systemd-248.html)
+8. SBCTl Auto sign UKI's?
 7. [tpm - clear old keys first](https://wiki.archlinux.org/title/Trusted_Platform_Module#systemd-cryptenroll)
 
 ## Ricing
@@ -200,5 +218,5 @@ Packages: ffmpeg, vaapi, gstreamerm mesa,
 4. Wlogout
 5. Pywal
 6. Alacritty
-7. Thunar
+7. Plymouth
 
