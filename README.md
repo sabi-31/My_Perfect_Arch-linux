@@ -6,6 +6,7 @@
 1. [This Extensive guide by Walian which was the main motivator.](https://walian.co.uk/arch-install-with-secure-boot-btrfs-tpm2-luks-encryption-unified-kernel-images.html)
 2. [This guide based on fedora by Madhu@ sysguides.](https://sysguides.com/install-fedora-with-snapshot-and-rollback-support)
 3. [And offcourse, the Arch btw Wiki.](https://wiki.archlinux.org/title/Main_page)
+4. [Good article on UEFI stubs and UKI's](https://linderud.dev/blog/mkinitcpio-v31-and-uefi-stubs/)
 
 ### Summary
 In this guide, I will do a minimal arch installation from scratch. I will be installing the OS on a fresh drive. I will partition it using btrfs, as I want to setup up snapper and rollback features. I will also encrypt my root partition using LUKS2. On top of all this, I will generate my own secure boot keys and sign all the bootable binaries. The kernel images will be generated my mkinitpcio as UKI's. Finally I will install Hyprland and other related utilities to make it look good and perform well. I will try to make it as modular and platform agnostic as possible to account for other people using this guide. Let's go:
@@ -180,8 +181,24 @@ Run lsblk to verify partitions
 
 14. Bootloader
 
+Packages: ffmpeg, vaapi, gstreamerm mesa,
+
 
 ## Post-Install
+1. Snapper
+2. Hyprland, polkit
+3. Audio
+4. AppArmor
+5. [fwupd](https://github.com/fwupd/fwupd)
+6. [Secure Boot 1](https://0pointer.net/blog/unlocking-luks2-volumes-with-tpm2-fido2-pkcs11-security-hardware-on-systemd-248.html)
+7. [tpm - clear old keys first](https://wiki.archlinux.org/title/Trusted_Platform_Module#systemd-cryptenroll)
 
 ## Ricing
+1. Hyprland
+2. Wofi
+3. Waybar
+4. Wlogout
+5. Pywal
+6. Alacritty
+7. Thunar
 
