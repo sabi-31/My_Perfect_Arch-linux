@@ -236,28 +236,36 @@ Special Credits to:
 	ffmpeg, vaapi, gstreamer mesa, pipewire, pipewire-pulse
 
 1. Snapper and snapshots
-
-2. Encryption
+	[wiki-preventing-slowdowns](https://wiki.archlinux.org/title/Snapper#Preventing_slowdowns)
+	Disbale cow for other subvolumes - chattr +C /mnt/@/var
+3. Encryption
 	1. Backup
 	2. TPM auto unlocking
 		1. [tpm - clear old keys first](https://wiki.archlinux.org/title/Trusted_Platform_Module#systemd-cryptenroll)
 
-3. Secure Boot
+4. Secure Boot
 	SBCTL
 	[Secure Boot 1](https://0pointer.net/blog/unlocking-luks2-volumes-with-tpm2-fido2-pkcs11-security-hardware-on-systemd-248.html)
 
 
-4. Installing Hyprland
-5. Other stuff:
+5. Installing Hyprland
+6. Other stuff:
 	1. Audio
 	2. AppArmor
 	3. [fwupd](https://github.com/fwupd/fwupd)
-	4. 
+	4. Cleanup alsa
+ 	5. Check systemctl services
+  	6. Swapfs
+   	7. [Maintainence](https://gist.github.com/MaxXor/ba1665f47d56c24018a943bb114640d7)
 ---
 
 # 5. Ricing
 ##### The stuff everyone actually cares about
 1. Hyprland
+ 1. Workspace Overview
+ 2. Fractional Scaling
+ 3. Notification Daemon
+ 4. [l1](https://github.com/mylinuxforwork/dotfiles/tree/main/share) and [l2](https://www.youtube.com/watch?v=J1L1qi-5dr0)
 2. Wofi
 3. Waybar
 4. Wlogout
