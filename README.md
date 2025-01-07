@@ -1,71 +1,98 @@
-# My_Perfect_Arch-linux
+## Table of Contents
 
-### This is a guide/personal reference/explanation of an ideal arch linux base install + all the good ricing on top of it. I am mainly creating this as a personal reference guide, but hope it's also helpful to someone else learning this stuff.
+1. [Introduction and Credits](#1_introduction-and-credits)
+1. [Pre-Install](#2_pre-install)
+2. [Installation](#3_installation)
+3. [Post-Install](#4_post-install)
+4. [Ricing](#5_ricing)
+5. [The Process Continues](#6_the-process-continues)
 
-### List of Resources that helped me and from which I picked up a lot of the stuff outlined in this guide, huge thanks to the original authors
+---
+
+# 1. Introduction and Credits
+> This was supposed to be a personal reference document, but I ended up formatting it as a guide since I think it will be helpful to many people out there who want the same type of install. I will walk through all the steps from beginning to end to installing what I consider (subjectively) to be a perfect arch linux install. 
+
+Key features:
+
+1. Btrfs install for system snapshot capabilities.
+2. Fully encrypted Root partition.
+3. Unified Kernel Images.
+4. Secure Boot Support with self signed keys.
+5. Fallback kernel and Windows booting with rEFInd.
+6. Snapshot Booting with rEFInd btrfs.
+7. My own learnings and best practises for a stable system.
+8. Some ricing examples and dotfiles that I will keep updating.
+
+> A lot of the stuff I will talk about here, was hugely inspired by other people in the community and their work. This guide is not to diminish their efforts, but to build upon them. 
+
+Special Credits to:
+
 1. [This Extensive guide by Walian which was the main motivator.](https://walian.co.uk/arch-install-with-secure-boot-btrfs-tpm2-luks-encryption-unified-kernel-images.html)
-2. [This guide based on fedora by Madhu@ sysguides.](https://sysguides.com/install-fedora-with-snapshot-and-rollback-support)
-3. [And offcourse, the Arch btw Wiki.](https://wiki.archlinux.org/title/Main_page)
-4. [Good article on UEFI stubs and UKI's](https://linderud.dev/blog/mkinitcpio-v31-and-uefi-stubs/)
+2. [This guide based on fedora by Madhu@sysguides.](https://sysguides.com/install-fedora-with-snapshot-and-rollback-support)
+3. [And offcourse, the Arch Wiki.](https://wiki.archlinux.org/title/Main_page)
 
-### Summary
-In this guide, I will do a minimal arch installation from scratch. I will be installing the OS on a fresh drive. I will partition it using btrfs, as I want to setup up snapper and rollback features. I will also encrypt my root partition using LUKS2. On top of all this, I will generate my own secure boot keys and sign all the bootable binaries. The kernel images will be generated my mkinitpcio as UKI's. Finally I will install Hyprland and other related utilities to make it look good and perform well. I will try to make it as modular and platform agnostic as possible to account for other people using this guide. Let's go:
+> I will try and keep the sections as modular as possible, so if someone wants to, for example, skip setting up secure boot, they can still follow along. I will also be linking some articles and blogposts which I found extremely helpful to understand some of the concepts, which you should definitely read. I am also by no means an expert, so I welcome any and all feedback on this. Lets start:
 
-# Table of Contents
-1. [Pre-Install](#Pre-Install) 
-2. [Installation](#Installation)
-3. [Post-Install](#Post-Install)
-4. [Ricing](#Ricing)
+---
 
-## Pre-Install
-1. Download the arch.iso file and burn it to a usb drive (diy).
-2. Disable secure boot from your motherboard's firmware if it's enabled, as otherwise your usb wont boot.
-3. If you are dual-booting and/or have multiple disks in your system, make sure to identify which drive you want to install the linux system on. I would highly highly recommend a separate drive for arch or any other linux distro for that matter in case of dual booting with windows. 
-4. Identify your locale and timezone data.
+# 2. Pre-Install
+##### This is all the preparation you need to do before attempting the arch install as well as explaining some stuff.
+1. Download the arch iso
+	Either use the BitTorrent download (Needs a torrent client installed on your machine) or choose your nearest https mirror from here -> [https://archlinux.org/download/](https://archlinux.org/download).
 
-## Installation
-1. Boot into the iso
-2. Connect to the internet if using wifi (if you have ethernet, skip this step)
+2. Verify the Downloaded Image (Optional but recommended)
+
+3. Burn the iso to a usb stick
+	Use a tool like rufus or balena etcher if you are on windows. On linux, you can use KDE ISO Image Wirte, or the Gnome Disk Utility for a good gui application to do this. Many more methods documented on the wiki [here](https://wiki.archlinux.org/title/USB_flash_installation_medium).
+	
+	---
+	<details>
+	<summary>Ventoy</summary>
+		Ventoy is a fantastic software, where you need to do the iso buring step only once, of Ventoy itself. After that, you just need to place any other iso files on the usb, and Ventoy will allow you to boot from it. 
+		You can also have multiple images in the same usb. While I love using it, when I was doing a baremetal install on my PC, the iso from Ventoy would not boot. 
+		I was getting errors as documented [here](https://github.com/ventoy/Ventoy/issues/2825). So I just burned the iso directly to another usb, and it worked. 
+		This seems to have been since fixed, or might not even occour for you. It's upto you to choose how you want to do this.
+	</details>
+	
+	---
+
+4. Identify the Installation Target
+	> If you're like me, and are installing linux on a separate drive, while already having windows on another drive, you need to check and make sure to correctly identify the drive. In linux, you can list all your drives using the command 'lsblk'. It labels SATA drives as sda1,sda2,... and nvme drives as nvme0n1, nvme1n1,... 
+	
+	> To avoid nuking your windows install, make a note of the correct drive. You can identify drives by their labels, existing partition, storage capacities, etc.
+
+# 3. Installation
+##### The Actual Install Process Begins
+
+1. Boot the ISO
+2. Internet Connectivity
+	If you have a wired ethernet connection, just check for connectivity and proceed to step 3.
+	If you're on wifi, run the below commands to connect to your network:
 	```
 	iwctl
-	```
-	```
 	device list
-	```
-	```
 	device wlan0 set-property Powered on
-	```
-	```
-	station wlan0 scan
-	```
-	```
+	station wlan0 scna
 	station wlan0 get-networks
-	```
-	```
 	station wlan0 connect <wifi-name>
 	```
-	
-	Check connection using 
-	```
-	ping google.com
-	```
-3.  Check all disks
-    ```
-	   lsblk
-	```
-	Find the name of your target disk, in my case it is nvme1n1
-	Save this in a variable:
-		```
-		DISK=/dev/nvme1n1
-		```
 
-		```
-		echo $DISK
-		```
-	   
-4. Create partitions using fdisk
-this will create a new gpt table on the disk, and then create two partitons - a 512MB eFI partiton and a root partition with the rest of the space.
-````
+	Check connectivity using:
+	> ping google.com
+
+3. Check for disks
+	>lsblk
+	Find the name of your target disk, in my case it is nvme1n1
+	Save this in a variable
+	```
+	DISK=/dev/nvme1n1
+
+	echo $DISK
+	```
+
+4. Partition your disk
+	In this step, we will create a new gpt table on the disk, and then create 2 partitions - a 512Mb EFI partiton and a root partition with the remaining space
+	````
 	a. fdisk $DISK
 	b. g
 	c. n
@@ -80,17 +107,20 @@ this will create a new gpt table on the disk, and then create two partitons - a 
 	l. 1
 	m. p
 	n. w
-````
-Run lsblk to verify partitions
+	````
 
-5. Encrypt Root Partiton 
-	#### For btrfs, we need to encrypt first and then create the btrfs partitions, for ext 4, we can create partitions first and then encrypt
-   ```
+	Run lsblk to verify partitions
+
+5. Encryption
+	Now we will encrypt the root partition with luks2
+	> For btrfs, we first need to encrypt the disk, and then create the filesystem. In ext4, the partiton can be create before
+   
+	```
 		cryptsetup luksFormat --type luks2 ${DISK}2
 		cryptsetup open --type luks ${DISK}2 root
-   ```
+	```
 
-    <details>
+	<details>
 	<summary>Extras</summary>
 		<pre>
 		Crypttab - possibly not needed with systemd boot
@@ -100,18 +130,19 @@ Run lsblk to verify partitions
 		</pre>
 	</details>
 
-6. Format Partitons
+6. Format your Partitions
 	```
 		mkfs.vfat -F32 -n EFI ${DISK}1
 		mkfs.btrfs -f -L root /dev/mapper/root
 	```
 
-	### blkid -o list
+	> blkid -o list
 
 7. Mount Partitions
-	Compression level to use and algo
+	>Compression level to use and algo
 	strFAT32options='rw,relatime,fmask=0022,dmask=0022,codepage=437,iocharset=iso8859-1,shortname=mixed,utf8'; ### my default options to mount FAT-32 file-systems
 	strBTRFSoptions='defaults,noatime,space_cache,ssd,compress-force=zstd:1,commit=120'; ### my default options to mount BTRFS file-systems
+	
 	```
 	mount -o compress-force=zstd:1 /dev/mapper/root /mnt
 	mkdir -p /mnt/efi
@@ -142,20 +173,20 @@ Run lsblk to verify partitions
 	/home/$USER/.gnupg
 	```
 
+	> also mount the above subvolumes using the same options as /
+
+
 9. Generate fstab
 	genfstab -U /mnt >> /mnt/etc/fstab
+	> Why am I using fstab when discoverable partitions exist?
 
-	also mount the above subvolumes using the same options as /
-
-10. Update mirrors and pacstrap
+10. Update Mirrors and Pacstrap
 	reflector --country India --age 24 -l 10 --protocol http,https --sort rate --save /etc/pacman.d/mirrorlist
 	? automate reflector update on reboot? (systemctl enable reflector.timer) - parameters (/etc/xdg/reflector/reflector.conf) https://ostechnix.com/retrieve-latest-mirror-list-using-reflector-arch-linux/
 
-    pacstrap -K /mnt base base-devel linux linux-firmware amd-ucode vim cryptsetup btrfs-progs dosfstools util-linux git unzip sbctl kitty networkmanager sudo 
+	pacstrap -K /mnt base base-devel linux linux-firmware amd-ucode vim cryptsetup btrfs-progs dosfstools util-linux git unzip sbctl kitty networkmanager sudo 
 
-
-11. Some Setup
-
+11. Set locales
 	#Set timezone:
 	ln -sf /usr/share/zoneinfo/Asia/Kolkata /etc/localtime
 	#Update time
@@ -181,37 +212,51 @@ Run lsblk to verify partitions
 	#Hostname
 	vi /etc/hostname and type desired hostname
 
+	
+12. User Management
 	#Root Password
 	passwd
 
+	### Create a new user for yourself
 
-12. Create USER
+13. Unified Kernel Images
 
-13. Create UKI and update initramfs
-
-14. Specify root= in kernel parameters
-
-14. Enable Services
+14. Enable services
 	systemd-resolved
 	systemd-timesyncd
 	NetwrokManager
-	
-14. Bootloader
 
-Packages: ffmpeg, vaapi, gstreamerm mesa,
+15. Install your bootloader
+
+---
+
+# 4. Post-Install
+##### First Boot and setting up some defaults as well as basic checks on the system
+1. Update Pacman and install essential packages:
+	ffmpeg, vaapi, gstreamer mesa, pipewire, pipewire-pulse
+
+1. Snapper and snapshots
+
+2. Encryption
+	1. Backup
+	2. TPM auto unlocking
+		1. [tpm - clear old keys first](https://wiki.archlinux.org/title/Trusted_Platform_Module#systemd-cryptenroll)
+
+3. Secure Boot
+	SBCTL
+	[Secure Boot 1](https://0pointer.net/blog/unlocking-luks2-volumes-with-tpm2-fido2-pkcs11-security-hardware-on-systemd-248.html)
 
 
-## Post-Install
-1. Snapper
-2. Hyprland, polkit
-3. Audio
-4. AppArmor
-5. [fwupd](https://github.com/fwupd/fwupd)
-6. [Secure Boot 1](https://0pointer.net/blog/unlocking-luks2-volumes-with-tpm2-fido2-pkcs11-security-hardware-on-systemd-248.html)
-8. SBCTl Auto sign UKI's?
-7. [tpm - clear old keys first](https://wiki.archlinux.org/title/Trusted_Platform_Module#systemd-cryptenroll)
+4. Installing Hyprland
+5. Other stuff:
+	1. Audio
+	2. AppArmor
+	3. [fwupd](https://github.com/fwupd/fwupd)
+	4. 
+---
 
-## Ricing
+# 5. Ricing
+##### The stuff everyone actually cares about
 1. Hyprland
 2. Wofi
 3. Waybar
@@ -219,4 +264,7 @@ Packages: ffmpeg, vaapi, gstreamerm mesa,
 5. Pywal
 6. Alacritty
 7. Plymouth
+---
 
+# 6. The Process Continues
+##### Given the nature of FOSS software, there are always changes/improvements possible. I will document them here
