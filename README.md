@@ -23,6 +23,8 @@ Key features:
 7. My own learnings and best practises for a stable system.
 8. Some ricing examples and dotfiles that I will keep updating.
 
+? Why refind and systemd-boot both?
+
 > A lot of the stuff I will talk about here, was hugely inspired by other people in the community and their work. This guide is not to diminish their efforts, but to build upon them. 
 
 Special Credits to:
@@ -150,6 +152,7 @@ Special Credits to:
 	```
 	
 8. Create btrfs subvolumes
+	(Arch recommended - /, /home, /var/log, /var/cache/pacman/pkg) and use @ naming scheme
 	```
 	home
 	opt
@@ -175,31 +178,45 @@ Special Credits to:
 
 	> also mount the above subvolumes using the same options as /
 
+*** - SWAP ON ZRAM https://wiki.archlinux.org/title/Swap
 
 9. Generate fstab
 	genfstab -U /mnt >> /mnt/etc/fstab
 	> Why am I using fstab when discoverable partitions exist?
 
+
+
 10. Update Mirrors and Pacstrap
 	reflector --country India --age 24 -l 10 --protocol http,https --sort rate --save /etc/pacman.d/mirrorlist
 	? automate reflector update on reboot? (systemctl enable reflector.timer) - parameters (/etc/xdg/reflector/reflector.conf) https://ostechnix.com/retrieve-latest-mirror-list-using-reflector-arch-linux/
 
-	pacstrap -K /mnt base base-devel linux linux-firmware amd-ucode vim cryptsetup btrfs-progs dosfstools util-linux git unzip sbctl kitty networkmanager sudo 
+	pacstrap -K /mnt base base-devel linux linux-firmware amd-ucode vim cryptsetup btrfs-progs dosfstools util-linux git unzip sbctl kitty networkmanager sudo openssh vim
 
 11. Set locales
 	#Set timezone:
 	ln -sf /usr/share/zoneinfo/Asia/Kolkata /etc/localtime
+	
 	#Update time
 	hwclock --systohc
+	
+	#Update time
+	timedatectl
 
 	#NTP server for accuracy
 	timedatectl set-ntp true (systemd-timesyncd.service)
 
+	
+
+	#Locale
+	```
+	Locale  Language - en_US
+	Locale layout - us
+	locale encoding - UTF-8
+	```	
 	#Keyboard layout
 	vi /etc/vconsole.conf
 	KEYMAP=us
 
-	#Locale
 	vi /etc/locale.gen
 	uncomment your desired locale
 	save and run locale-gen
@@ -234,6 +251,15 @@ Special Credits to:
 ##### First Boot and setting up some defaults as well as basic checks on the system
 1. Update Pacman and install essential packages:
 	ffmpeg, vaapi, gstreamer mesa, pipewire, pipewire-pulse
+	zsh, fsck, man-db, man-pages, findutils
+	Arch recommended for hyprland desktop - dolphin, dunst, grim, kitty, polkit-kde-agent, qt5-wayland, qt6-wayland, slurf, wofi, xdg-desktop-portal-hyprland, htop, iwd, wget, wireless_tools wpa_supplicant, xdg-utils
+	https://wiki.archlinux.org/title/Xorg#Driver_installation - AMD Drivers (Arch recommended) - libva-mesa-driver, mesa, vulkan-radeon, xf86-video-amdgpu, xf86-video-ati xorg-server, xorg-xinit
+
+	Optional Repos - multilib, testing
+	Flatpaks
+
+2. Check Journal(journalctl -exb) and systemctl failed units (systemctl --failed)
+
 
 1. Snapper and snapshots
 	[wiki-preventing-slowdowns](https://wiki.archlinux.org/title/Snapper#Preventing_slowdowns)
@@ -257,7 +283,13 @@ Special Credits to:
  	5. Check systemctl services
   	6. Swapfs
    	7. [Maintainence](https://gist.github.com/MaxXor/ba1665f47d56c24018a943bb114640d7)
+	8. CLear pacman cache - https://wiki.archlinux.org/title/Pacman#Cleaning_the_package_cache, https://wiki.archlinux.org/title/Pacman/Tips_and_tricks#Removing_unused_packages_(orphans)
+	9. Enable https://wiki.archlinux.org/title/Pkgstats to help the community
+	10. Read Messages during system upgrade
+	11. Install lts kernel for fallback
+	12. Firewall
 ---
+
 
 # 5. Ricing
 ##### The stuff everyone actually cares about
