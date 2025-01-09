@@ -122,7 +122,7 @@ Special Credits to:
 	j. default
 	k. t
 	l. 1
-	m. p
+	m. 1
 	n. w
 	````
 
@@ -165,9 +165,9 @@ Special Credits to:
 	FAT32options='rw,relatime,fmask=0022,dmask=0022,codepage=437,iocharset=iso8859-1,shortname=mixed,utf8'; ### my default options to mount FAT-32 file-systems
 	BTRFSoptions='defaults,noatime,space_cache,ssd,compress-force=zstd:1,commit=120'; ### my default options to mount BTRFS file-systems
 
-	mount -o BTRFSoptions /dev/mapper/root /mnt
+	mount -o $BTRFSoptions /dev/mapper/root /mnt
 	mkdir -p /mnt/efi
-	mount -o FAT32options /dev/{DISK}1 /mnt/efi
+	mount -o $FAT32options /dev/{DISK}1 /mnt/efi
 	```
 	
 8. Create btrfs subvolumes
@@ -175,7 +175,7 @@ Special Credits to:
 	
 	The archinstall script uses - /, /home, /var/log, /var/cache/pacman/pkg and use @ naming scheme.
 	[OpenSuse Recommends](https://en.opensuse.org/SDB:BTRFS) - /home, /opt, /root, /srv, /tmp, /usr/local, /var.
-	This is the layout I personally use, and which has worked well for me. It's very well expalined in this [sysguides](https://sysguides.com/install-fedora-41-with-full-disk-encryption-snapshot-and-rollback-support#1-partitions-and-subvolumes-layout) article.
+	This is the layout I personally use, and which has worked well for me. It's very well expalined in this [sysguides article](https://sysguides.com/install-fedora-41-with-full-disk-encryption-snapshot-and-rollback-support#1-partitions-and-subvolumes-layout).
 
 	```
 	/home
@@ -197,22 +197,51 @@ Special Credits to:
 	
 	Mount all the subvolumes you created using the same mount options as the root.
 
-*** - SWAP ON ZRAM https://wiki.archlinux.org/title/Swap
+	Swap Partitions on btrfs -> https://wiki.archlinux.org/title/Swap
 
 9. Generate fstab
-	> Systemd has the concept of discoverable partitions, where you don't need to 
+	```
+	mkdir /mnt/etc
+	touch /mnt/etc/fstab
 	genfstab -U /mnt >> /mnt/etc/fstab
-	> Why am I using fstab when discoverable partitions exist?
-
+	```
+	<details>
+		<summary>Why am I using fstab when discoverable partitions exist?</summary>
+		[Discoverable partitons](https://www.freedesktop.org/wiki/Specifications/DiscoverablePartitionsSpec/) is a cool feature which can automount your drives, and can fully be used in this install, as I will be using systemd-boot as my bootloader.
+		However, I will still manually define my mount points in fstab. This is because:
+			a. I don't see an option of defining my mount options, and I don't want them to be the system defaults
+			b. I will still have to mount my btrfs subvolumes manually, so why not do it all myself?
+			c. I don't like the abstraction, I prefer to setup my system myself.
+	</details>
+	
 
 
 10. Update Mirrors and Pacstrap
+
+	Before we download and install the necessary packages, let us update our mirrors, for the best speed, by running:
+
+	```
 	reflector --country India --age 24 -l 10 --protocol http,https --sort rate --save /etc/pacman.d/mirrorlist
-	? automate reflector update on reboot? (systemctl enable reflector.timer) - parameters (/etc/xdg/reflector/reflector.conf) https://ostechnix.com/retrieve-latest-mirror-list-using-reflector-arch-linux/
+	```
 
+	<details>
+		<summary>Automate Reflector in a Running System</summary>
+		Mirrors that you use may get outdated or put out of commission. You can set the reflector service to run on boot by enabling the systemd service (systemctl enable reflector.timer).
+		[Guide](https://ostechnix.com/retrieve-latest-mirror-list-using-reflector-arch-linux/)
+	</details>
+
+	Now, I will install the base required packages for my arch install using the pacstrap command on my /mnt where the system root is mounted. 
+	
+	```
 	pacstrap -K /mnt base base-devel linux linux-firmware amd-ucode vim cryptsetup btrfs-progs dosfstools util-linux git unzip sbctl kitty networkmanager sudo openssh vim
+	```
 
-11. Set locales
+11. Chroot into the install and do basic setup
+
+	```
+	arch-chroot /mnt
+	```
+
 	#Set timezone:
 	ln -sf /usr/share/zoneinfo/Asia/Kolkata /etc/localtime
 	
@@ -228,21 +257,24 @@ Special Credits to:
 	
 
 	#Locale
-	```
-	Locale  Language - en_US
+
+	> Locale  Language - en_US
 	Locale layout - us
 	locale encoding - UTF-8
-	```	
+		
 	#Keyboard layout
 	vi /etc/vconsole.conf
 	KEYMAP=us
 
 	vi /etc/locale.gen
+
 	uncomment your desired locale
-	save and run locale-gen
-	(prefer UTF-8)
+	save and run 
+	locale-gen
+
 	check current locale by running:
 	locale
+
 	Set locale by running:
 	localectl set-locale LANG=en_US.UTF-8
 	
@@ -257,13 +289,32 @@ Special Credits to:
 	### Create a new user for yourself
 
 13. Unified Kernel Images
+	```
+	echo "quiet rw" >/etc/kernel/cmdline
+	mkdir -p /efi/EFI/Linux
+	vi /etc/mkinitcpio.conf
+	vi /etc/mkinitcpio.d/linux.preset
+	mkinitcpio -P
+	```
 
 14. Enable services
 	systemd-resolved
 	systemd-timesyncd
 	NetwrokManager
 
+	```
+	systemctl enable systemd-resolved systemd-timesyncd NetworkManager
+	systemctl mask systemd-networkd
+	```
+
 15. Install your bootloader
+	```
+	bootctl install --esp-path=/efi
+	sync
+	reboot
+
+	```
+
 
 ---
 
