@@ -10,11 +10,11 @@
 ---
 
 # 1. Introduction and Credits
-> This was supposed to be a personal reference document, but I ended up formatting it as a guide since I think it will be helpful to many people out there who want the same type of install. I will walk through all the steps from beginning to end to installing what I consider (subjectively) to be a perfect arch linux install. 
+> This was supposed to be a personal reference document, but I ended up formatting it as a guide since I think it will be helpful to many people out there who want the same type of install. I will walk through all the steps from beginning to end to installing what is (subjectively) a perfect arch linux install. 
 
 Key features:
 
-1. Btrfs install for system snapshot capabilities.
+1. BTRFS filesystem for system snapshot capabilities.
 2. Fully encrypted Root partition.
 3. Unified Kernel Images.
 4. Secure Boot Support with self signed keys.
@@ -23,7 +23,7 @@ Key features:
 7. My own learnings and best practises for a stable system.
 8. Some ricing examples and dotfiles that I will keep updating.
 
-? Why refind and systemd-boot both?
+
 
 > A lot of the stuff I will talk about here, was hugely inspired by other people in the community and their work. This guide is not to diminish their efforts, but to build upon them. 
 
@@ -40,9 +40,14 @@ Special Credits to:
 # 2. Pre-Install
 ##### This is all the preparation you need to do before attempting the arch install as well as explaining some stuff.
 1. Download the arch iso
-	Either use the BitTorrent download (Needs a torrent client installed on your machine) or choose your nearest https mirror from here -> [https://archlinux.org/download/](https://archlinux.org/download).
+	Either use the BitTorrent download (Needs a torrent client installed on your machine) or choose your nearest **https** mirror from here -> [https://archlinux.org/download](https://archlinux.org/download).
 
 2. Verify the Downloaded Image (Optional but recommended)
+	```
+	gpg --keyserver-options auto-key-retrieve --verify archlinux-version-x86_64.iso.sig
+	```
+
+	where gpg is GnuPG, which needs to be installed on your existing system, and archlinux-version-x86_64.iso.sig is the file you download from the same webpage as the iso. 
 
 3. Burn the iso to a usb stick
 	Use a tool like rufus or balena etcher if you are on windows. On linux, you can use KDE ISO Image Wirte, or the Gnome Disk Utility for a good gui application to do this. Many more methods documented on the wiki [here](https://wiki.archlinux.org/title/USB_flash_installation_medium).
@@ -50,10 +55,13 @@ Special Credits to:
 	---
 	<details>
 	<summary>Ventoy</summary>
-		Ventoy is a fantastic software, where you need to do the iso buring step only once, of Ventoy itself. After that, you just need to place any other iso files on the usb, and Ventoy will allow you to boot from it. 
+		<pre>
+		Ventoy is a fantastic software, where you install the ventoy software on your usb. After that, you just need to download and copy iso files on the usb, and Ventoy will allow you to boot from it. 
 		You can also have multiple images in the same usb. While I love using it, when I was doing a baremetal install on my PC, the iso from Ventoy would not boot. 
 		I was getting errors as documented [here](https://github.com/ventoy/Ventoy/issues/2825). So I just burned the iso directly to another usb, and it worked. 
-		This seems to have been since fixed, or might not even occour for you. It's upto you to choose how you want to do this.
+		This seems to have been since fixed, or might not even occour for you. It's upto you to choose how you want to do this. 
+		If you distrohop a lot, or just have a large capacity usb, you can use ventoy and store multiple images on it. I always have a copy of arch, windows 10, and gparted on my ventoy usb.
+		</pre>
 	</details>
 	
 	---
@@ -61,12 +69,13 @@ Special Credits to:
 4. Identify the Installation Target
 	> If you're like me, and are installing linux on a separate drive, while already having windows on another drive, you need to check and make sure to correctly identify the drive. In linux, you can list all your drives using the command 'lsblk'. It labels SATA drives as sda1,sda2,... and nvme drives as nvme0n1, nvme1n1,... 
 	
-	> To avoid nuking your windows install, make a note of the correct drive. You can identify drives by their labels, existing partition, storage capacities, etc.
+	> To avoid nuking your windows install, make a note of the correct drive. You can identify drives by their labels, existing partition layouts, storage capacity, etc.
 
 # 3. Installation
-##### The Actual Install Process Begins
+##### The Actual Install Process
 
-1. Boot the ISO
+1. Boot from the ISO
+	> Connect your usb with the Arch ISO, reboot to your PC's BIOS settings (lookup how to for your model, generally it's by pressing the F2 or del key during boot), and in the boot priority, set the usb as the first to boot from. If you have secure boot enabled, you have to disable it (I will self sign my install with my own keys and re-enable it further in the guide).
 2. Internet Connectivity
 	If you have a wired ethernet connection, just check for connectivity and proceed to step 3.
 	If you're on wifi, run the below commands to connect to your network:
@@ -74,10 +83,13 @@ Special Credits to:
 	iwctl
 	device list
 	device wlan0 set-property Powered on
-	station wlan0 scna
+	station wlan0 scan
 	station wlan0 get-networks
 	station wlan0 connect <wifi-name>
+	exit
 	```
+
+	> Here wlan0 is the name of my wifi device as output by device list, and \<wifi-name> will be substituted by the name of my Wifi Connection.
 
 	Check connectivity using:
 	> ping google.com
@@ -85,7 +97,8 @@ Special Credits to:
 3. Check for disks
 	>lsblk
 	Find the name of your target disk, in my case it is nvme1n1
-	Save this in a variable
+	Save this in a variable.
+	If you don't have a nvme SSD, your disk may be listed as sda,sdb, etc.
 	```
 	DISK=/dev/nvme1n1
 
@@ -93,14 +106,16 @@ Special Credits to:
 	```
 
 4. Partition your disk
-	In this step, we will create a new gpt table on the disk, and then create 2 partitions - a 512Mb EFI partiton and a root partition with the remaining space
+	In this step, we will create a new gpt table on the disk, and then create 2 partitions - a 1GB EFI partiton (Interchangeably referred to as the ESP) and a root partition with the remaining space.
+	
+	> I am seriously debating the size of the EFI partition. While 512Mb has been more than enough for me is the past, I have seen people recommend 1 GB. I have a 1tb SSD on which I will be installing arch, so it's not a big deal for me, and as I plan to use this system long term, I don't want to have to deal with rezising the partition later. 
 	````
 	a. fdisk $DISK
 	b. g
 	c. n
 	d. default
 	e. default
-	f. +512M
+	f. +1G
 	g. n
 	h. default
 	i. default
@@ -113,23 +128,23 @@ Special Credits to:
 
 	Run lsblk to verify partitions
 
+	If your disk name was sda,sdb, you can skip this step. If it was a nvme drive like me, update the DISK variable as shown below. This is because partitons in nvme are named as nvme1n1p1, nvme1n1p2 while other are named as sda1,sda2,
+	```
+		DISK=/dev/nvme1n1p
+	```
+
 5. Encryption
 	Now we will encrypt the root partition with luks2
-	> For btrfs, we first need to encrypt the disk, and then create the filesystem. In ext4, the partiton can be create before
+	> For btrfs, we first need to encrypt the disk, and then create the filesystem. In ext4, the filesystem can be created before luks is setup.
    
 	```
 		cryptsetup luksFormat --type luks2 ${DISK}2
 		cryptsetup open --type luks ${DISK}2 root
 	```
-
+	>From here on, our root isn't /dev/sda2 or /dev/nvme1n2, but rather /dev/mapper/root
 	<details>
-	<summary>Extras</summary>
-		<pre>
+	<summary>Crypttab</summary>	
 		Crypttab - possibly not needed with systemd boot
-		Backup LUKS Headers
-		Generate a recovery key
-		Register into tpm
-		</pre>
 	</details>
 
 6. Format your Partitions
@@ -137,50 +152,55 @@ Special Credits to:
 		mkfs.vfat -F32 -n EFI ${DISK}1
 		mkfs.btrfs -f -L root /dev/mapper/root
 	```
-
-	> blkid -o list
+	Check if the partitons are correctly created:
+	```
+	blkid -o list
+	```
 
 7. Mount Partitions
-	>Compression level to use and algo
-	strFAT32options='rw,relatime,fmask=0022,dmask=0022,codepage=437,iocharset=iso8859-1,shortname=mixed,utf8'; ### my default options to mount FAT-32 file-systems
-	strBTRFSoptions='defaults,noatime,space_cache,ssd,compress-force=zstd:1,commit=120'; ### my default options to mount BTRFS file-systems
+	
+	>We will not mount our partitions to the /mnt folder and install arch there. While I can mount the partitions directly, I prefer to declare some options as per my preference. You can make changes to these options or skip using them entirely.
 	
 	```
-	mount -o compress-force=zstd:1 /dev/mapper/root /mnt
+	FAT32options='rw,relatime,fmask=0022,dmask=0022,codepage=437,iocharset=iso8859-1,shortname=mixed,utf8'; ### my default options to mount FAT-32 file-systems
+	BTRFSoptions='defaults,noatime,space_cache,ssd,compress-force=zstd:1,commit=120'; ### my default options to mount BTRFS file-systems
+
+	mount -o BTRFSoptions /dev/mapper/root /mnt
 	mkdir -p /mnt/efi
-	mount /dev/{DISK}1 /mnt/efi
+	mount -o FAT32options /dev/{DISK}1 /mnt/efi
 	```
 	
 8. Create btrfs subvolumes
-	(Arch recommended - /, /home, /var/log, /var/cache/pacman/pkg) and use @ naming scheme
-	```
-	home
-	opt
-	srv
-	home/$USER/.mozilla
-	home/$USER/.ssh
-	var/lib/sddm
-	var/cache
-	var/crash
-	var/log
-	var/tmp
-	```
+	> This section is a lot more subjective to the type of installation you prefer. Basically, since we are on a btrfs filesystem, and will be using the rollback functionality on the root subvolume, you can choose which folders on your root won't be rolled back. They can have their own rollback logic created. To do this, they need to be mount as separate subvolumes. Choosing which folders should be subvolumes has no definitive answer.
+	
+	The archinstall script uses - /, /home, /var/log, /var/cache/pacman/pkg and use @ naming scheme.
+	[OpenSuse Recommends](https://en.opensuse.org/SDB:BTRFS) - /home, /opt, /root, /srv, /tmp, /usr/local, /var.
+	This is the layout I personally use, and which has worked well for me. It's very well expalined in this [sysguides](https://sysguides.com/install-fedora-41-with-full-disk-encryption-snapshot-and-rollback-support#1-partitions-and-subvolumes-layout) article.
 
-	Optional:
 	```
-	var/lib/libvirt/images
-	var/spool
-	var/www
+	/home
+	/opt
+	/srv
+	/home/$USER/.mozilla
+	/home/$USER/.ssh
+	/var
+	```
+	
+	Optional, if you use Thunderbird, Chrome, or Gnupg.
+	```
 	/home/$USER/.thunderbird
 	/home/$USER/.config/google-chrome
 	/home/$USER/.gnupg
 	```
 
-	> also mount the above subvolumes using the same options as /
+	> You can also create btrfs subvolumes in the future.
+	
+	Mount all the subvolumes you created using the same mount options as the root.
 
 *** - SWAP ON ZRAM https://wiki.archlinux.org/title/Swap
 
 9. Generate fstab
+	> Systemd has the concept of discoverable partitions, where you don't need to 
 	genfstab -U /mnt >> /mnt/etc/fstab
 	> Why am I using fstab when discoverable partitions exist?
 
@@ -269,12 +289,23 @@ Special Credits to:
 	2. TPM auto unlocking
 		1. [tpm - clear old keys first](https://wiki.archlinux.org/title/Trusted_Platform_Module#systemd-cryptenroll)
 
+4. Install rEFInd
+	<details>
+		<summary>Why do I need both rEFInd and systemd-boot? </summary>
+		- rEFInd Btrfs
+		- Customizability
+		- Separation of both bootloaders
+		- Management is easier of systemd-boot
+	</details>
+For Extras
+
 4. Secure Boot
 	SBCTL
 	[Secure Boot 1](https://0pointer.net/blog/unlocking-luks2-volumes-with-tpm2-fido2-pkcs11-security-hardware-on-systemd-248.html)
 
 
 5. Installing Hyprland
+
 6. Other stuff:
 	1. Audio
 	2. AppArmor
