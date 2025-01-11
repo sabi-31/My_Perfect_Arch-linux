@@ -152,6 +152,11 @@ Special Credits to:
 		mkfs.vfat -F32 -n EFI ${DISK}1
 		mkfs.btrfs -f -L root /dev/mapper/root
 	```
+	[Discoverable Partitios](https://www.freedesktop.org/software/systemd/man/latest/systemd-gpt-auto-generator.html)
+	lsblk -p -o NAME,PARTTYPE
+	root (dev/sda2) should be 4f68bce3-e8cd-4db1-96e7-fbcaf984b709)
+
+
 	Check if the partitons are correctly created:
 	```
 	blkid -o list
@@ -233,7 +238,8 @@ Special Credits to:
 	Now, I will install the base required packages for my arch install using the pacstrap command on my /mnt where the system root is mounted. 
 	
 	```
-	pacstrap -K /mnt base base-devel linux linux-firmware amd-ucode vim cryptsetup btrfs-progs dosfstools util-linux git unzip sbctl kitty networkmanager sudo openssh vim
+	pacman -Sy archlinux-keyring
+	pacstrap -K /mnt base base-devel linux linux-firmware amd-ucode cryptsetup btrfs-progs dosfstools util-linux git unzip sbctl kitty networkmanager sudo openssh vim
 	```
 
 11. Chroot into the install and do basic setup
@@ -291,8 +297,13 @@ Special Credits to:
 13. Unified Kernel Images
 	```
 	echo "quiet rw" >/etc/kernel/cmdline
+
 	mkdir -p /efi/EFI/Linux
-	vi /etc/mkinitcpio.conf
+
+	vi /etc/mkinitcpio.conf"
+	HOOKS=(base systemd autodetect modconf kms keyboard sd-vcons
+	ole sd-encrypt block filesystems fsck)
+
 	vi /etc/mkinitcpio.d/linux.preset
 	mkinitcpio -P
 	```
@@ -311,7 +322,9 @@ Special Credits to:
 	```
 	bootctl install --esp-path=/efi
 	sync
-	reboot
+	exit 
+
+	systemctl reboot --firmware-setup
 
 	```
 
