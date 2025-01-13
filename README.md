@@ -23,7 +23,7 @@ Key features:
 7. My own learnings and best practises for a stable system.
 8. Some ricing examples and dotfiles that I will keep updating.
 
-
+This Guide assumes, your are on a UEFI system. To check this, you can run the command " ls /sys/firmware/efi/efivars".
 
 > A lot of the stuff I will talk about here, was hugely inspired by other people in the community and their work. This guide is not to diminish their efforts, but to build upon them. 
 
@@ -123,8 +123,22 @@ Special Credits to:
 	k. t
 	l. 1
 	m. 1
-	n. w
+	n. t
+	o. 2
+	p. 
+	q. w
 	````
+
+	For the first partition, we set the parition type as EFI, and for the second one it was set as Linux Filesystem x86_64. The second step, while technically not necessary, is essential, as setting the filesystem type of our parttion will associate a GUID with it. 
+	This is then used by systemd to be able to recoginze our root partition to decrypt and mount it automatically without a crypttab or fstab file. 
+	[Discoverable Partitions](https://www.freedesktop.org/software/systemd/man/latest/systemd-gpt-auto-generator.html). Verify your partition GUID with:
+
+	```
+	lsblk -p -o NAME,PARTTYPE
+	```
+
+	Root Filesystem (dev/sda2) should have a guid of 4f68bce3-e8cd-4db1-96e7-fbcaf984b709.
+
 
 	Run lsblk to verify partitions
 
@@ -141,6 +155,7 @@ Special Credits to:
 		cryptsetup luksFormat --type luks2 ${DISK}2
 		cryptsetup open --type luks ${DISK}2 root
 	```
+
 	>From here on, our root isn't /dev/sda2 or /dev/nvme1n2, but rather /dev/mapper/root
 	<details>
 	<summary>Crypttab</summary>	
@@ -150,13 +165,9 @@ Special Credits to:
 6. Format your Partitions
 	```
 		mkfs.vfat -F32 -n EFI ${DISK}1
-		mkfs.btrfs -f -L root /dev/mapper/root
+		mkfs.btrfs -L root /dev/mapper/root
 	```
-	[Discoverable Partitios](https://www.freedesktop.org/software/systemd/man/latest/systemd-gpt-auto-generator.html)
-	lsblk -p -o NAME,PARTTYPE
-	root (dev/sda2) should be 4f68bce3-e8cd-4db1-96e7-fbcaf984b709)
-
-
+	
 	Check if the partitons are correctly created:
 	```
 	blkid -o list
@@ -164,15 +175,12 @@ Special Credits to:
 
 7. Mount Partitions
 	
-	>We will not mount our partitions to the /mnt folder and install arch there. While I can mount the partitions directly, I prefer to declare some options as per my preference. You can make changes to these options or skip using them entirely.
+	>We will now mount our partitions to the /mnt folder and install arch there. While I can mount the partitions directly, I prefer to declare some options as per my preference. You can make changes to these options or skip using them entirely.
 	
 	```
-	FAT32options='rw,relatime,fmask=0022,dmask=0022,codepage=437,iocharset=iso8859-1,shortname=mixed,utf8'; ### my default options to mount FAT-32 file-systems
-	BTRFSoptions='defaults,noatime,space_cache,ssd,compress-force=zstd:1,commit=120'; ### my default options to mount BTRFS file-systems
-
-	mount -o $BTRFSoptions /dev/mapper/root /mnt
+	mount -o defaults,noatime,space_cache,ssd,compress-force=zstd:1,commit=120 /dev/mapper/root /mnt
 	mkdir -p /mnt/efi
-	mount -o $FAT32options /dev/{DISK}1 /mnt/efi
+	mount -o rw,relatime,fmask=0077,dmask=0077,codepage=437,iocharset=iso8859-1,shortname=mixed,utf8 /dev/{DISK}1 /mnt/efi
 	```
 	
 8. Create btrfs subvolumes
@@ -183,12 +191,14 @@ Special Credits to:
 	This is the layout I personally use, and which has worked well for me. It's very well expalined in this [sysguides article](https://sysguides.com/install-fedora-41-with-full-disk-encryption-snapshot-and-rollback-support#1-partitions-and-subvolumes-layout).
 
 	```
-	/home
-	/opt
-	/srv
-	/home/$USER/.mozilla
-	/home/$USER/.ssh
-	/var
+	/home -> Home Folder where your main configs/data/games will reside
+	/home/$USER/.mozilla -> The directory where your firefox data is stored. If you ever rollback your home directory, this will prevent any potential loss of browsing data
+	/home/$USER/.ssh -> Same as above, to protect any ssh keys/configs you have
+	/opt -> Third party applications
+	/var/cache/pacman/pkg -> This is where pacman stores it's package data.
+	/var/lib/sddm -> Since I will be using SDDM as my Display Manager
+	/var/log
+	/var/tmp
 	```
 	
 	Optional, if you use Thunderbird, Chrome, or Gnupg.
@@ -201,6 +211,7 @@ Special Credits to:
 	> You can also create btrfs subvolumes in the future.
 	
 	Mount all the subvolumes you created using the same mount options as the root.
+	mount -o defaults,noatime,space_cache=v2,ssd,compress-force=zstd:1,commit=120,subvol=@home /dev/mapper/root /mnt/home
 
 	Swap Partitions on btrfs -> https://wiki.archlinux.org/title/Swap
 
@@ -259,6 +270,7 @@ Special Credits to:
 
 	#NTP server for accuracy
 	timedatectl set-ntp true (systemd-timesyncd.service)
+	systemctl enable systemd-timesyncd
 
 	
 
@@ -337,7 +349,7 @@ Special Credits to:
 	ffmpeg, vaapi, gstreamer mesa, pipewire, pipewire-pulse
 	zsh, fsck, man-db, man-pages, findutils
 	Arch recommended for hyprland desktop - dolphin, dunst, grim, kitty, polkit-kde-agent, qt5-wayland, qt6-wayland, slurf, wofi, xdg-desktop-portal-hyprland, htop, iwd, wget, wireless_tools wpa_supplicant, xdg-utils
-	https://wiki.archlinux.org/title/Xorg#Driver_installation - AMD Drivers (Arch recommended) - libva-mesa-driver, mesa, vulkan-radeon, xf86-video-amdgpu, xf86-video-ati xorg-server, xorg-xinit
+	https://wiki.archlinux.org/title/Xorg#Driver_installation - AMD Drivers (Arch recommended) - libva-mesa-driver, mesa, vulkan-radeon, xf86-video-amdgpu, xf86-video-ati xorg-server, xorg-xinit, mesa-vdpau
 
 	Optional Repos - multilib, testing
 	Flatpaks

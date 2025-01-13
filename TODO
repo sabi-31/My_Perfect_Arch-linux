@@ -1,0 +1,23 @@
+Swap on ZRAM -> pacstrap zram-generator, 
+/etc/systemd/zram-generator.conf = 
+[zram0]
+zram-size= min(ram, 8192)
+
+
+tmpfs
+
+
+/var/cache/pacman/pkg
+
+sudo paccache -ruk0(remove cache of uninstalled packages)
+sudo paccache -rv(Remove all cache except recent 3)
+sudo pacman -Qtd(Remove all packages installed as dependcies that are not longer needed)
+
+mlocate (install with pacman) and updatedb
+
+
+sudo systemctl enable fstrim.timer
+https://gitlab.com/cryptsetup/cryptsetup/-/wikis/FrequentlyAskedQuestions#2-setup
+https://wiki.archlinux.org/title/Dm-crypt/Drive_preparation
+https://wiki.archlinux.org/title/Dm-crypt/Specialties#Discard/TRIM_support_for_solid_state_drives_(SSD)
+https://wiki.archlinux.org/title/Solid_state_drive#Periodic_TRIM
