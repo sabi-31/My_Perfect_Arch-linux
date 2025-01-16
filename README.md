@@ -14,16 +14,17 @@
 
 Key features:
 
-1. BTRFS filesystem for system snapshot capabilities.
+1. BTRFS + Snapper rollbacks.
 2. Fully encrypted Root partition.
 3. Unified Kernel Images.
-4. Secure Boot Support with self signed keys.
-5. Fallback kernel and Windows booting with rEFInd.
+4. Secure Boot.
+5. Dual Boot.
 6. Snapshot Booting with rEFInd btrfs.
-7. My own learnings and best practises for a stable system.
-8. Some ricing examples and dotfiles that I will keep updating.
+7. Hyprland + Apps.
+8. System Maintainence and Best Practises.
+9. Ricing and Dotfiles.
 
-This Guide assumes, your are on a UEFI system.
+This guide assumes that you are on a UEFI system.
 
 > A lot of the stuff I will talk about here, was hugely inspired by other people in the community and their work. 
 
@@ -33,53 +34,50 @@ Special Credits to:
 2. [This guide based on fedora by Madhu@sysguides.](https://sysguides.com/install-fedora-with-snapshot-and-rollback-support)
 3. [And offcourse, the Arch Wiki.](https://wiki.archlinux.org/title/Main_page)
 
-> I will try and keep the sections as modular as possible, so if someone wants to, for example, skip setting up secure boot, they can still follow along. I will also be linking some articles and blogposts which I found extremely helpful to understand some of the concepts, which you should definitely read. I am also by no means an expert, so I welcome any and all feedback on this. Lets start.
+> I will try and keep the sections as modular as possible, so if someone wants to, for example, skip setting up secure boot, they can still follow along. I will also be linking some articles and blogposts which I found extremely helpful to understand some of the concepts, which you should definitely read. 
+
+> I am by no means an expert, so I welcome any and all feedback on this. Lets arch.
 
 ---
 
 # 2. Pre-Install
-##### This is all the preparation you need to do before attempting the arch install as well as explaining some stuff.
+### This is all the preparation you need to do before attempting the install.
 1. Download the arch iso
-	Either use the BitTorrent download (Needs a torrent client installed on your machine) or choose your nearest **https** mirror from here -> [https://archlinux.org/download](https://archlinux.org/download).
+	Either use the BitTorrent download (needs a bit-torrent client installed on your machine) or choose your nearest **https** mirror from here -> [https://archlinux.org/download](https://archlinux.org/download). <br><br><br>
 
 2. Verify the Downloaded Image (Optional but recommended)
 	```
 	gpg --keyserver-options auto-key-retrieve --verify archlinux-version-x86_64.iso.sig
 	```
 
-	where gpg is GnuPG, which needs to be installed on your existing system, and archlinux-version-x86_64.iso.sig is the file you download from the same webpage as the iso. 
+	where gpg is GnuPG, which needs to be installed on your existing system, and archlinux-version-x86_64.iso.sig is the file you download from the same webpage as the iso. <br><br><br>
 
 3. Burn the iso to a usb stick
-	Use a tool like rufus or balena etcher if you are on windows. On linux, you can use KDE ISO Image Wirte, or the Gnome Disk Utility for a good gui application to do this. Many more methods documented on the wiki [here](https://wiki.archlinux.org/title/USB_flash_installation_medium).
+	Use a tool like rufus or balena etcher if you are on windows. On linux, you can use KDE ISO Image Wirte, or the Gnome Disk Utility for a good gui application to do this. Many more methods documented on the wiki [here](https://wiki.archlinux.org/title/USB_flash_installation_medium). <br><br>
 	
-	---
 	<details>
 	<summary>Ventoy</summary>
-		<pre>
-		Ventoy is a fantastic software, where you install the ventoy software on your usb. After that, you just need to download and copy iso files on the usb, and Ventoy will allow you to boot from it. 
-		You can also have multiple images in the same usb. While I love using it, when I was doing a baremetal install on my PC, the iso from Ventoy would not boot. 
-		I was getting errors as documented [here](https://github.com/ventoy/Ventoy/issues/2825). So I just burned the iso directly to another usb, and it worked. 
-		This seems to have been since fixed, or might not even occour for you. It's upto you to choose how you want to do this. 
-		If you distrohop a lot, or just have a large capacity usb, you can use ventoy and store multiple images on it. I always have a copy of arch, windows 10, and gparted on my ventoy usb.
-		</pre>
+		You can alternatively use a software like ventoy, which prevents the need to burn a iso image to a drive, while also allowing you to have multiple iso images on the same disk. I personally use and love it. You can check out more about here on it's github page -> https://github.com/ventoy/Ventoy
 	</details>
-	
-	---
+	<br><br>
 
 4. Identify the Installation Target
-	> If you're like me, and are installing linux on a separate drive, while already having windows on another drive, you need to check and make sure to correctly identify the drive. In linux, you can list all your drives using the command 'lsblk'. It labels SATA drives as sda1,sda2,... and nvme drives as nvme0n1, nvme1n1,... 
-	
-	> To avoid nuking your windows install, make a note of the correct drive. You can identify drives by their labels, existing partition layouts, storage capacity, etc.
+	> If you're like me, and are installing linux on a separate drive, while already having windows on another drive, you need to check and make sure to correctly identify the drive. In linux, you can list all your drives using the command 'lsblk'. It labels SATA drives as sda1,sda2,... and nvme drives as nvme0n1, nvme1n1, etc. To avoid nuking your windows install, make a note of the correct drive. You can identify drives by their labels, existing partition layouts, storage capacity, etc.
+
+---
 
 # 3. Installation
-##### The Actual Install Process
+### The Actual Install Process
 
 1. Boot from the ISO
-	> Connect your usb with the Arch ISO, reboot to your PC's BIOS settings (lookup how to for your model, generally it's by pressing the F2 or del key during boot), and in the boot priority, set the usb as the first to boot from. If you have secure boot enabled, you have to disable it (I will self sign my install with my own keys and re-enable it further in the guide).
+	> Plug in your usb with the Arch ISO, reboot to your PC's Motherboard settings (lookup how to for your model, generally it's by pressing the F2 or del key during boot), and in the boot priority, set the usb as the first to boot from. If secure boot is enabled,you have to disable it. 
+	
+	>Further in this guide, I will show you how to generate custom secure boot keys. We will sign our arch install, and our arch iso with those keys. We can then have secure boot enabled.
+
+	<br><br>
 
 2. Internet Connectivity
-	If you have a wired ethernet connection, just check for connectivity and proceed to step 3.
-
+	If you have a wired ethernet connection, just check for connectivity and proceed to step 3.<br>
 	If you're on wifi, run the below commands to connect to your network:
 	```
 	iwctl
@@ -88,32 +86,38 @@ Special Credits to:
 	station wlan0 scan
 	station wlan0 get-networks
 	station wlan0 connect <wifi-name>
+	<Enter password>
 	exit
 	```
 
 	> Here wlan0 is the name of my wifi device as output by device list, and \<wifi-name> will be substituted by the name of my Wifi Connection.
+	
+
 
 	Check connectivity using:
-	> ping google.com
+	```
+	ping google.com
+	```
+	<br><br>
 
 3. Check for disks
-	>lsblk
-	Find the name of your target disk, in my case it is nvme1n1.
-
-	Save this in a variable as to avoid any mistakes during partitioning, especially in a dual boot environment.
-
-	If you don't have a nvme SSD, your disk may be listed as sda,sdb, etc.
+	```
+	lsblk
+	```
+	Find the name of your target disk, in my case it is nvme1n1. <br>
+	Save this in a variable as to avoid any mistakes during partitioning, especially in a dual boot environment. <br>
+	If you don't have a nvme SSD, your disk may be listed as sda,sdb, etc. <br>
 
 	```
 	DISK=/dev/nvme1n1
-
 	echo $DISK
 	```
-
+	<br><br>
 4. Partition your disk
-	In this step, we will create a new gpt table on the disk, and then create 2 partitions - a 1GB EFI partiton (Interchangeably referred to as the ESP) and a root partition with the remaining space.
+	In this step, we will create a new gpt table on the disk, and then create 2 partitions - a 1GB EFI partiton (also referred to as the ESP) and a Root partition with the remaining space.
+	<br>
 	
-	> I am seriously debating the size of the EFI partition. While 512Mb has been more than enough for me is the past, I have seen people recommend 1 GB. I have a 1tb SSD on which I will be installing arch, so it's not a big deal for me, and as I plan to use this system long term, I don't want to have to deal with rezising the partition later, so I am making it 1G. If you want to have it as 512Mb, use +512M instead of +1G in the command below:
+	> I am seriously debating the size of the EFI partition. While 512Mb has been more than enough for me is the past, I have seen people recommend 1 GB. I have a 1tb SSD on which I will be installing arch, so it's not a big deal for me, and as I plan to use this system long term, I don't want to have to deal with rezising the partition later, so I am making it 1GB. If you want to have it as 512Mb, use +512M instead of +1G in the command below:
 
 	````
 	a. fdisk $DISK
@@ -135,10 +139,11 @@ Special Credits to:
 	q. w
 	````
 
-	For the first partition, we set the parition type as EFI, and for the second one it was set as Linux Root (x86_64) instead of the default (Linux Filesystem). The second step, while technically not necessary, is essential, as setting the filesystem type of our parttion will associate a GUID with it. 
+	For the first partition, we set the parition type as EFI, and for the second one it was set as Linux Root (x86_64) instead of the default (Linux Filesystem).<br>
+	The second step, while technically not necessary, is essential, as this will associate a standard partition GUID with it.<br>
 	This is then used by systemd (only if using systemd-boot) to recoginze our root partition to decrypt and mount it automatically without a crypttab or fstab file.
-	
-	[Discoverable Partitions]l(https://www.freedesktop.org/software/systemd/man/latest/systemd-gpt-auto-generator.html). 
+	<br>
+	Read more about [Discoverable Partitions](https://www.freedesktop.org/software/systemd/man/latest/systemd-gpt-auto-generator.html). 
 	
 	Verify your partition type GUID (separate from a normal partition GUID output with blkid) with:
 
@@ -189,7 +194,7 @@ Special Credits to:
 	blkid -o list
 	```
 
-8. Btrfs
+7. Btrfs
 	1. Subvolumes
 	
 	> This section is a lot more subjective to the type of installation you prefer. Basically, since we are on a btrfs filesystem, and will be using the rollback functionality on the root subvolume, you can choose which folders on your root won't be rolled back. They can have their own rollback logic created. To do this, they need to be mount as separate subvolumes. Choosing which folders should be subvolumes has no definitive answer.
@@ -249,7 +254,7 @@ Special Credits to:
 	OR
 	mount -o defaults,fmask=0077,dmask=0077 /dev/{DISK}1 /mnt/efi
 
-9. Generate fstab
+8. Generate fstab
 
 	```
 	mkdir /mnt/etc
