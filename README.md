@@ -203,28 +203,30 @@ Special Credits to:
 
 	```
 
-	/home -> Home Folder where your main configs/data/games will reside
-	/home/$USER/.mozilla -> The directory where your firefox data is stored. If you ever rollback your home directory, this will prevent any potential loss of browsing data
-	/home/$USER/.ssh -> Same as above, to protect any ssh keys/configs you have
-	/opt -> Third party applications
-	/var
+	@home -> Home Folder where your main configs/data/games will reside
+	@mozilla -> The directory where your firefox data is stored. If you ever rollback your home directory, this will prevent any potential loss of browsing data
+	@ssh -> Same as above, to protect any ssh keys/configs you have
+	@opt -> Third party applications
+	@var
+ 	@snapshots
+ 	@home-snapshots
 	```
 
-	btrfs subvolume create {@,@home,@home/$USER/.mozilla,@home/$USER/.ssh,@var,@opt}
+	btrfs subvolume create {@,@home,@mozilla,@ssh,@var,@opt,@snapshots,@home-snapshots}
 
 	get subvol id of @
 	btrfs subvolume set-default $ID /mnt
 
-	I will mount paccache to the tmp directory, as I don't need it, you can read the rationale behind this [here](https://www.reddit.com/r/archlinux/comments/1hgbl1k/what_is_varcachepackagepkg_and_why_is_it_so_large/)
+	I am making the whole of var into one subvolume. This is not recommended by arch, as pacman stores it's cache in the /var/cache/pacman directory. But I am going to configure pacman cache to be in the tmp directory, as I don't need it, you can read the rationale behind this [here](https://www.reddit.com/r/archlinux/comments/1hgbl1k/what_is_varcachepackagepkg_and_why_is_it_so_large/)
 
 	Optional, if you use Thunderbird, Chrome, or Gnupg.
 	```
-	/home/$USER/.thunderbird
-	/home/$USER/.config/google-chrome
-	/home/$USER/.gnupg
+	@thunderbird - /home/$USER/.thunderbird
+	@chrome - /home/$USER/.config/google-chrome
+	@gnupg - /home/$USER/.gnupg
 	```
 
-	> You can also create btrfs subvolumes in the future.
+	> You can also create btrfs subvolumes in the future if you need it. 
 	
 	2. Mount Options
 
@@ -232,12 +234,13 @@ Special Credits to:
 	mount -o defaults,noatime,space_cache=v2,ssd,compress-force=zstd:1,commit=120,subvol=@home /dev/mapper/root /mnt/home
 
 	mount -o defaults,noatime,space_cache=v2,ssd,compress-force=zstd:1,commit=120,subvol=@ /dev/mapper/root /mnt
-	mount -o defaults,noatime,space_cache=v2,ssd,compress-force=zstd:1,commit=120,subvol=@home /dev/mapper/root /mnt/home
-	mount -o defaults,noatime,space_cache=v2,ssd,compress-force=zstd:1,commit=120,subvol=@home/$USER/.mozilla /dev/mapper/root /mnt/home/$USER/.mozilla
-	mount -o defaults,noatime,space_cache=v2,ssd,compress-force=zstd:1,commit=120,subvol=@home/$USER/.ssh /dev/mapper/root /mnt/home/$USER/.ssh
-	mount -o defaults,noatime,space_cache=v2,ssd,compress-force=zstd:1,commit=120,subvol=@opt /dev/mapper/root /mnt/opt
-	mount -o defaults,noatime,space_cache=v2,ssd,nodatacow,commit=120,subvol=@var /dev/mapper/root /mnt/var
+	mount -o subvol=@home /dev/mapper/root /mnt/home
+	mount -o subvol=@mozilla /dev/mapper/root /mnt/home/$USER/.mozilla
+	mount -o subvol=@ssh /dev/mapper/root /mnt/home/$USER/.ssh
+	mount -o subvol=@opt /dev/mapper/root /mnt/opt
+	mount -o subvol=@var /dev/mapper/root /mnt/var
 
+	> Once a subvolume is mounted with some options, all other subvoumes follow the same options. This is fine mostly as I need the same options everywhere, except in the @var directory, where I want to have the nodatacow mount option.
 	Note: nodatacow and compress/compress-force can't be used together.
 
 	Mount Options:
@@ -337,7 +340,7 @@ Special Credits to:
 	uncomment by removing the '#' of the following line:
 	# %wheel ALL=(ALL:ALL) ALL
 
-	#Change ownership of home
+	#Change ownership of user's home
 	chown -R $USER:$USER /home/$USER
 
 
