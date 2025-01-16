@@ -240,7 +240,11 @@ Special Credits to:
 	mount -o subvol=@opt /dev/mapper/root /mnt/opt
 	mount -o subvol=@var /dev/mapper/root /mnt/var
 
-	> Once a subvolume is mounted with some options, all other subvoumes follow the same options. This is fine mostly as I need the same options everywhere, except in the @var directory, where I want to have the nodatacow mount option.
+	> Once a subvolume is mounted with some options, all other subvoumes follow the same options. This is fine mostly as I need the same options everywhere, except in the @var directory, where I want to have the nodatacow mount option. So instead I will set the attribute +C on the var directory, which accomplishes the same thing.
+ 	```
+  	chattr +C /var
+  	```
+  
 	Note: nodatacow and compress/compress-force can't be used together.
 
 	Mount Options:
