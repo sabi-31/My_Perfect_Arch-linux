@@ -162,30 +162,48 @@ Special Credits to:
 	```
 		DISK=/dev/nvme1n1p
 	```
-
+	<br>
+	<br>
 5. Encryption
 	Now we will encrypt the root partition with luks2.
-	> When we use luks to encrypt our drive with a password or a key, what it does is create a header. This header is what actually encrypts and decrypts the drive. Our key actually encrypts only the header. This is different that plain encryption, where our password is used to encrypt the entire disk. This allows a greater flexibility when creating and managing passwords and keys. We can have multiple 
-   
+	> When we use luks to encrypt our drive with a password or a key, what it does is create a header. This header is what actually encrypts and decrypts the drive. Our key actually encrypts only the header. This is different that plain encryption, where our password is used to encrypt the entire disk. This allows a greater flexibility when creating and managing passwords and keys. We can also have multiple passwords and keys created that unlock the header.
+
+	> One downside of this approach is that if our header ever gets corrupted, we lose the ability to unlock our entire drive. To mitigate this, we will also backup our drive header further in the guide.
+	
+	<br>
+
 	```
 		cryptsetup -v luksFormat --type luks2 ${DISK}2
 		cryptsetup open --type luks --allow-discards --perf-no_read_workqueue --perf-no_write_workqueue --persistent ${DISK}2 root
 	```
-	The 'allow discards' enables trim support for a SSD (https://wiki.archlinux.org/title/Dm-crypt/Specialties#Discard/TRIM_support_for_solid_state_drives_(SSD) ) 
-	(https://wiki.archlinux.org/title/Solid_state_drive#TRIM)
-	the persistent options writes these options to the header, so they are always used in the future
-	the --perf-no_read_workqueue and --perf-no_write_workqueue increases performance for SSD's (https://wiki.archlinux.org/title/Dm-crypt/Specialties#Disable_workqueue_for_increased_solid_state_drive_(SSD)_performance)
-	You can check the flags with:
-	cryptsetup luksDump /dev/sdaX | grep Flags
+	<br>
 
-	>From here on, our root isn't /dev/sda2 or /dev/nvme1n2, but rather /dev/mapper/root
-	<details>
-	<summary>Crypttab</summary>	
-		Crypttab - possibly not needed with systemd boot
-		https://wiki.archlinux.org/title/Dm-crypt/System_configuration#Using_systemd-cryptsetup-generator
-	</details>
+	In the first command we formatted our disk with luks2, it will autogenerate the header and ask you to provide a password to unlock. Make this password strong, or better yet use a [passphrase](https://www.techtarget.com/searchsecurity/definition/passphrase)
+	
+	In the second command, we open our encrypted drive, and give it the name of 'root'. From here on, our root partition isn't /dev/sda2 or /dev/nvme1n1p2, but rather it's /dev/mapper/root
+	
+	<br>
+	The 'allow discards' enables [Trim](https://wiki.archlinux.org/title/Solid_state_drive#TRIM) support for a SSD [Read More](https://wiki.archlinux.org/title/Dm-crypt/Specialties#Discard/TRIM_support_for_solid_state_drives_(SSD)).
+	
+	The --perf-no_read_workqueue and --perf-no_write_workqueue increases performance for SSD's [Read More](https://wiki.archlinux.org/title/Dm-crypt/Specialties#Disable_workqueue_for_increased_solid_state_drive_(SSD)_performance)
+
+	The 'persistent' option writes these options to the header, so they are always used by default in the future.
+
+	<br>
+	You can check the flags that your drive is opened with using:
+	
+	<br>
+
+	```
+	cryptsetup luksDump /dev/sdaX | grep Flags
+	```
+	> We will be relying on systemd to automatically recognize and decrypt our root partition. If you decide to use grub, you have to so some more setup.
+	
+	<br>
+	<br>
 
 6. Format your Partitions
+	Now we will format our efi partition as Fat32 and the root partition as btrfs.
 	```
 		mkfs.vfat -F32 -n ESP ${DISK}1
 		mkfs.btrfs -L root /dev/mapper/root
@@ -195,47 +213,62 @@ Special Credits to:
 	```
 	blkid -o list
 	```
+		
+	<br>
+	<br>
 
-7. Btrfs
-	1. Subvolumes
-	
-	> This section is a lot more subjective to the type of installation you prefer. Basically, since we are on a btrfs filesystem, and will be using the rollback functionality on the root subvolume, you can choose which folders on your root won't be rolled back. They can have their own rollback logic created. To do this, they need to be mount as separate subvolumes. Choosing which folders should be subvolumes has no definitive answer.
+7. Btrfs Subvolumes
+    > This section is a lot more subjective to the type of installation you prefer. Basically, since we are on a btrfs filesystem, and will be using the rollback functionality on the root subvolume, you can choose which folders on your root won't be rolled back. They can have their own rollback logic created. To do this, they need to be mount as separate subvolumes. Choosing which folders should be subvolumes has no definitive answer.
 	
 	
-	The archinstall script uses - /, /home, /var/log, /var/cache/pacman/pkg and use @ naming scheme.
+	The archinstall script creates the following subvolumes - /, /home, /var/log, /var/cache/pacman/pkg and the '@' naming scheme.
 
-	[OpenSuse Recommends](https://en.opensuse.org/SDB:BTRFS) - /home, /opt, /root, /srv, /tmp, /usr/local, /var.
+	OpenSuse Recommends the following [Subvolumes]](https://en.opensuse.org/SDB:BTRFS) - /home, /opt, /root, /srv, /tmp, /usr/local, /var.
 
-	This is the layout I personally use, and which has worked well for me. It's very well expalined in this [sysguides article](https://sysguides.com/install-fedora-41-with-full-disk-encryption-snapshot-and-rollback-support#1-partitions-and-subvolumes-layout).
+	<br>
+
+	This is the subvolume layout and I personally use, and which has worked well for me.
+
+	> @ (/) -> The root folder, which is also a separate subvolume below the btrfsroot volume, and which we will rollback in case of any issues.<br><br>
+	@home (/home) -> Home Folder where your Data/Games/Configurations will reside. <br><br>
+	@mozilla (/home/\$USER/.mozilla) -> The directory where your firefox data is stored. If you ever rollback your home directory, this will prevent any potential loss of browsing data. <br><br>
+	@ssh (/home/\$USER/.ssh) -> Same as above, to protect any ssh keys/configs you have. <br><br>
+	@opt (/opt)  -> This is where third party applications are installed. <br><br>
+	@var (/var) -> Where all temporary files/logs/cache is stored.  <br><br>
+ 	@snapshots (/.snapshots) -> This subvolume will house snapshots of our @ subvolume (Managed via Snapper). <br><br>
+ 	@home-snapshots (/home/.snapshots) -> This subvolume will house snapshots of our @home subvolume (Managed via Snapper). <br><br>
+	
+	<br>
 
 	```
-
-	@home -> Home Folder where your main configs/data/games will reside
-	@mozilla -> The directory where your firefox data is stored. If you ever rollback your home directory, this will prevent any potential loss of browsing data
-	@ssh -> Same as above, to protect any ssh keys/configs you have
-	@opt -> Third party applications
-	@var
- 	@snapshots
- 	@home-snapshots
-	```
-
+	mount /dev/mapper/root /mnt
+	cd /mnt
 	btrfs subvolume create {@,@home,@mozilla,@ssh,@var,@opt,@snapshots,@home-snapshots}
+	btrfs subvolume list /mnt
+	```
 
-	get subvol id of @
+	The final commands lists all the subvolumes with their ID.
+	Get subvol id of @ and set it as default for the root (eg. 256)
+
+	```
 	btrfs subvolume set-default $ID /mnt
+	```
 
-	I am making the whole of var into one subvolume. This is not recommended by arch, as pacman stores it's cache in the /var/cache/pacman directory. But I am going to configure pacman cache to be in the tmp directory, as I don't need it, you can read the rationale behind this [here](https://www.reddit.com/r/archlinux/comments/1hgbl1k/what_is_varcachepackagepkg_and_why_is_it_so_large/)
+	>I am making the whole of var into one subvolume. This is not recommended by arch, as pacman stores it's cache in the /var/cache/pacman directory. But I am going to configure pacman cache to be in the tmp directory, as I don't need it, you can read the rationale behind this [here](https://www.reddit.com/r/archlinux/comments/1hgbl1k/what_is_varcachepackagepkg_and_why_is_it_so_large/)
 
-	Optional, if you use Thunderbird, Chrome, or Gnupg.
+	Optional, if you use Thunderbird, Chrome, or Gnupg you can also create the below subvolumes to preserve their data similar to @mozilla above.
 	```
 	@thunderbird - /home/$USER/.thunderbird
 	@chrome - /home/$USER/.config/google-chrome
 	@gnupg - /home/$USER/.gnupg
 	```
 
-	> You can also create btrfs subvolumes in the future if you need it. 
-	
-	2. Mount Options
+	> More btrfs subvolumes can also be created in the future if you need it. 
+		
+	<br>
+	<br>
+
+8. Mount Options
 
 	Mount all the subvolumes you created using the same mount options as the root.
 	mount -o defaults,noatime,space_cache=v2,ssd,compress-force=zstd:1,commit=120,subvol=@home /dev/mapper/root /mnt/home
@@ -263,7 +296,7 @@ Special Credits to:
 	OR
 	mount -o defaults,fmask=0077,dmask=0077 /dev/{DISK}1 /mnt/efi
 
-8. Generate fstab
+9.  Generate fstab
 
 	```
 	mkdir /mnt/etc
