@@ -140,33 +140,35 @@ Special Credits to:
 	````
 
 	For the first partition, we set the parition type as EFI, and for the second one it was set as Linux Root (x86_64) instead of the default (Linux Filesystem).<br>
-	The second step, while technically not necessary, is essential, as this will associate a standard partition GUID with it.<br>
+	This setting of partition type, while technically not necessary, is essential, as this will associate a standard partition GUID with it.<br>
 	This is then used by systemd (only if using systemd-boot) to recoginze our root partition to decrypt and mount it automatically without a crypttab or fstab file.
 	<br>
 	Read more about [Discoverable Partitions](https://www.freedesktop.org/software/systemd/man/latest/systemd-gpt-auto-generator.html). 
 	
-	Verify your partition type GUID (separate from a normal partition GUID output with blkid) with:
+	Verify your partition type GUID (separate from a normal partition GUID, output with blkid) with:
 
 	```
 	lsblk -p -o NAME,PARTTYPE
 	```
 
-	Root Filesystem (dev/sda2) should have a guid of 4f68bce3-e8cd-4db1-96e7-fbcaf984b709.
-	The EFI should have the guid of c12a7328-f81f-11d2-ba4b-00a0c93ec93b
+	Root Filesystem (/dev/sdx2 or /dev/nvmenxn1p2) should have a guid of 4f68bce3-e8cd-4db1-96e7-fbcaf984b709. <br>
+	The EFI parition should have the guid of c12a7328-f81f-11d2-ba4b-00a0c93ec93b
 
-
-	Run lsblk to verify partitions
-
+	<br>
+	Run lsblk to verify your partition sizes.
+	<br><br>
 	If your disk name was sda,sdb, you can skip this step. If it was a nvme drive like me, update the DISK variable as shown below. This is because partitons in nvme are named as nvme1n1p1, nvme1n1p2 while other are named as sda1,sda2,
+	
 	```
 		DISK=/dev/nvme1n1p
 	```
 
 5. Encryption
-	Now we will encrypt the root partition with luks2
+	Now we will encrypt the root partition with luks2.
+	> When we use luks to encrypt our drive with a password or a key, what it does is create a header. This header is what actually encrypts and decrypts the drive. Our key actually encrypts only the header. This is different that plain encryption, where our password is used to encrypt the entire disk. This allows a greater flexibility when creating and managing passwords and keys. We can have multiple 
    
 	```
-		cryptsetup luksFormat --type luks2 ${DISK}2
+		cryptsetup -v luksFormat --type luks2 ${DISK}2
 		cryptsetup open --type luks --allow-discards --perf-no_read_workqueue --perf-no_write_workqueue --persistent ${DISK}2 root
 	```
 	The 'allow discards' enables trim support for a SSD (https://wiki.archlinux.org/title/Dm-crypt/Specialties#Discard/TRIM_support_for_solid_state_drives_(SSD) ) 
