@@ -275,28 +275,121 @@ Special Credits to:
 
 	mount -o defaults,noatime,space_cache=v2,ssd,compress-force=zstd:1,commit=120,subvol=@ /dev/mapper/root /mnt
 	mount -o subvol=@home /dev/mapper/root /mnt/home
-	mount -o subvol=@mozilla /dev/mapper/root /mnt/home/$USER/.mozilla
-	mount -o subvol=@ssh /dev/mapper/root /mnt/home/$USER/.ssh
+
 	mount -o subvol=@opt /dev/mapper/root /mnt/opt
 	mount -o subvol=@var /dev/mapper/root /mnt/var
+
+	> We will mount @mozilla, @ssh, @snapshots and @home-snapshots,  later on.
 
 	> Once a subvolume is mounted with some options, all other subvoumes follow the same options. This is fine mostly as I need the same options everywhere, except in the @var directory, where I want to have the nodatacow mount option. So instead I will set the attribute +C on the var directory, which accomplishes the same thing.
  	```
   	chattr +C /var
   	```
   
-	Note: nodatacow and compress/compress-force can't be used together.
+	>Nodatacow and compress/compress-force can't be used together.
 
-	Mount Options:
-	[All](https://btrfs.readthedocs.io/en/stable/Administration.html#mount-options)
+	Read more about various btrfs [Mount Options](https://btrfs.readthedocs.io/en/stable/Administration.html#mount-options)
 
 	Also mount the efi partition
+	```
 	mkdir -p /mnt/efi
-	mount -o srw,relatime,fmask=0077,dmask=0077,codepage=437,iocharset=iso8859-1,shortname=mixed,utf8 /dev/{DISK}1 /mnt/efi
-	OR
 	mount -o defaults,fmask=0077,dmask=0077 /dev/{DISK}1 /mnt/efi
+	```
+
+
+
+
+10. Update Mirrors and Pacstrap
+
+	Before we download and install the necessary packages, let us update our mirrors, for the best download speed, by running:
+
+	```
+	reflector --country $COUNTRY --age 24 -l 10 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
+	```
+
+	Now, we install the base required packages for a arch install using the pacstrap command on /mnt where the system root is mounted. 
+	
+	```
+	pacman -Sy archlinux-keyring
+	pacstrap -K /mnt base base-devel linux linux-firmware amd-ucode cryptsetup btrfs-progs dosfstools util-linux git networkmanager sudo openssh vim
+	```
+
+11. Chroot into the install and do basic setup
+
+	>Chroot makes it so that the system behaves as if you are the root user of the new install. This is done so as to not need to reference /mnt as the root.
+
+	```
+	arch-chroot /mnt
+	```
+
+	1. Set the system timezone, Update the system time and Setup a NTP server for Clock Accuracy using the below commands (replace /Asia/Kolkata with your respective timezone)
+		
+		```
+		ln -sf /usr/share/zoneinfo/Asia/Kolkata /etc/localtime
+		timedatectl set-ntp true
+		systemctl enable systemd-timesyncd
+		```
+
+		[Read this if you are dual-booting windows](https://wiki.archlinux.org/title/System_time#UTC_in_Microsoft_Windows)
+
+	2. Locale
+		#Locale
+
+	vi /etc/locale.gen
+
+		uncomment your desired locale by removing the # at the start.if it's not en_US.UTF-8, also uncomment it.([Why?](https://wiki.archlinux.org/title/Steam#Installation))
+		Save the file and Run
+		```
+		locale-gen
+		```
+		Then run the following command and input desired locale and hostname:
+
+		```
+		systemd-firstboot --prompt
+		```
+
+	3. Set pacman Cache directory to be in /tmp
+
+		```
+		vim /etc/pacman.conf
+		```
+
+		Make the line starting with #CacheDir look like this and save:
+
+		CacheDir     = /tmp/cache-pacman/pkg/
+
+	
+12. User Management
+	1. Set Root Password
+		```
+		passwd
+		```
+
+	2. Create your user and set password.
+
+		```
+		useradd -G wheel -m $USER
+		passwd $USER
+		```
+
+	3. Allow your user to run sudo commands with a password
+	
+		```
+		visudo
+		```
+
+		Uncomment by removing the '#' of the following line and save:
+		# %wheel ALL=(ALL:ALL) ALL
+
+	4. Mount 2 of the remaining 4 subvolumes
+		```
+			mkdir /home/$USER/{.mozilla,.ssh}
+			mount -o subvol=@mozilla /dev/mapper/root /mnt/home/$USER/.mozilla
+			mount -o subvol=@ssh /dev/mapper/root /mnt/home/$USER/.ssh
+		```
 
 9.  Generate fstab
+	>fstab is a file referenced by the system during boot to mount your drives/partitions to the correct location. Since we have already mounted our drives, we will use the **genfstab** utility to output the fstab file with the options we chose earlier, and save it, so that in the future these options are used by default.
 
 	```
 	mkdir /mnt/etc
@@ -314,112 +407,45 @@ Special Credits to:
 	</details>
 	
 
+13. Generate Unified Kernel Images
 
-10. Update Mirrors and Pacstrap
-
-	Before we download and install the necessary packages, let us update our mirrors, for the best speed, by running:
-
-	```
-	reflector --country India --age 24 -l 10 --protocol http,https --sort rate --save /etc/pacman.d/mirrorlist
-	```
-
-	<details>
-		<summary>Automate Reflector in a Running System</summary>
-		Mirrors that you use may get outdated or put out of commission. You can set the reflector service to run on boot by enabling the systemd service (systemctl enable reflector.timer).
-		[Guide](https://ostechnix.com/retrieve-latest-mirror-list-using-reflector-arch-linux/)
-	</details>
-
-	Now, I will install the base required packages for my arch install using the pacstrap command on my /mnt where the system root is mounted. 
-	
-	```
-	pacman -Sy archlinux-keyring
-	pacstrap -K /mnt base base-devel linux linux-firmware amd-ucode cryptsetup btrfs-progs dosfstools util-linux git unzip sbctl kitty networkmanager sudo openssh vim
-	```
-
-11. Chroot into the install and do basic setup
-
-	```
-	arch-chroot /mnt
-	```
-
-
-	#Set timezone:
-	ln -sf /usr/share/zoneinfo/Asia/Kolkata /etc/localtime
-	
-	#Update time
-	hwclock --systohc
-
-	#NTP server for accuracy
-	timedatectl set-ntp true (systemd-timesyncd.service)
-	systemctl enable systemd-timesyncd
-
-	
-	#Locale
-
-	vi /etc/locale.gen
-
-	uncomment your desired locale
-	save and run 
-	locale-gen
-
-	check current locale by running:
-	locale
-
-	 systemd-firstboot --prompt
-
-	#Pacman Cache
-	vim /etc/pacman.conf
-	CacheDir     = /tmp/cache-pacman/pkg/
-
-	
-12. User Management
-	#Root Password
-	passwd
-
-	### Create a new user for yourself
-	useradd -G wheel -m $USER
-	passwd $USER
-
-	visudo
-	uncomment by removing the '#' of the following line:
-	# %wheel ALL=(ALL:ALL) ALL
-
-	#Change ownership of user's home
-	chown -R $USER:$USER /home/$USER
-
-
-13. Unified Kernel Images
 	```
 	echo "quiet rw" >/etc/kernel/cmdline
-
 	mkdir -p /efi/EFI/Linux
-
-	vim /etc/mkinitcpio.conf"
+	vim /etc/mkinitcpio.conf
+	```
+	
+	Edit the hooks like in mkinitcpio.conf to look like this:
 	HOOKS=(base systemd autodetect modconf kms keyboard sd-vconsole sd-encrypt block filesystems fsck)
 
+	```
 	vim /etc/mkinitcpio.d/linux.preset
+	```
+
 	Uncomment lines for uki, and comment for image
 
+	Run below command to generate images
+	```
 	mkinitcpio -P
 	```
 
 14. Enable services
 
-	Networking
+	Network
 
 	```
 	systemctl enable systemd-resolved NetworkManager
 	systemctl mask systemd-networkd
+	[Reflector](https://ostechnix.com/retrieve-latest-mirror-list-using-reflector-arch-linux/)
 	```
 
-15. Install your bootloader
+15. Bootloader Installation
+
 	```
 	bootctl install --esp-path=/efi
 	sync
 	exit 
-
 	systemctl reboot --firmware-setup
-
 	```
 
 
@@ -429,12 +455,20 @@ Special Credits to:
 ##### First Boot and setting up some defaults as well as basic checks on the system
 1. Update Pacman and install essential packages:
 	1. Drivers and Codecs
-	2. Useful programs
-      	1. la
+	2. Shell and Fonts
+	3. Useful programs
+      	1. Utilities
+			unzip, sbctl, kitty
       	2. AUR Helper
+         	1. Paru install, disable auto update of pacman packagesf
       	3. IDE
-	3. Enable Flatpaks
-	4. 
+	4. Flatpaks
+	5. [Optional Repositories](https://wiki.archlinux.org/title/Official_repositories#)
+        I will be enabling the Multilib repo(because I need Steam).
+				vim /etc/pacman.conf
+				[multilib]
+				Include = /etc/pacman.d/mirrorlist
+
 
 
 
@@ -444,22 +478,18 @@ Special Credits to:
 	https://wiki.archlinux.org/title/Xorg#Driver_installation - AMD Drivers (Arch recommended) - libva-mesa-driver, mesa, vulkan-radeon, xf86-video-amdgpu, xf86-video-ati xorg-server, xorg-xinit, mesa-vdpau
 
 	Optional Repos - multilib, testing
-	Flatpaks
-
-2. Snapper and snapshots
-	Btrfs-Assistant
-	Auto Snapshots and Cleanup
-	Disable indexing of snapshots
-	[wiki-preventing-slowdowns](https://wiki.archlinux.org/title/Snapper#Preventing_slowdowns)
-	Disbale cow for other subvolumes - chattr +C /mnt/@/var
 
 
-3. Encryption
+2. Backup Luks Headers and Keys
 	1. Backup
 	2. TPM auto unlocking
 		1. [tpm - clear old keys first](https://wiki.archlinux.org/title/Trusted_Platform_Module#systemd-cryptenroll)
 
-4. Install rEFInd
+3. Setup Auto Unlocking via TPM
+
+
+
+5. Install rEFInd
 	<details>
 		<summary>Why do I need both rEFInd and systemd-boot? </summary>
 		- rEFInd Btrfs
@@ -467,16 +497,25 @@ Special Credits to:
 		- Separation of both bootloaders
 		- Management is easier of systemd-boot
 	</details>
-For Extras
 
-4. Secure Boot
+
+
+
+6. Secure Boot
 	SBCTL
 	[Secure Boot 1](https://0pointer.net/blog/unlocking-luks2-volumes-with-tpm2-fido2-pkcs11-security-hardware-on-systemd-248.html)
 
 
-5. Installing Hyprland
+7. Installing Hyprland
 
-6. Other stuff:
+8. 2. Snapper and snapshots
+	Btrfs-Assistant
+	Auto Snapshots Timer and Cleanup
+	Disable indexing of snapshots
+	[wiki-preventing-slowdowns](https://wiki.archlinux.org/title/Snapper#Preventing_slowdowns)
+	Disbale cow for other subvolumes - chattr +C /mnt/@/var
+
+8. Misc:
 	1. Audio
 	2. AppArmor
 	3. [fwupd](https://github.com/fwupd/fwupd)
@@ -491,14 +530,14 @@ For Extras
 	12. Firewall
 	13. Enable reflector on boot
 
-7. System Maintainence
+9.  System Maintainence
 	1. Btrfs filesystem
 		1. [Defragmentation](https://wiki.archlinux.org/title/Btrfs#Defragmentation)
 		2. 
 
 	2. Recovering from issues with the help of Snapshots
 		1. [Snapshot Rollbacks]
-		1. [Snapshot Booting](https://wiki.archlinux.org/title/Btrfs#Booting_into_snapshots)
+		2. [Snapshot Booting](https://wiki.archlinux.org/title/Btrfs#Booting_into_snapshots)
 ---
 
 
@@ -519,3 +558,6 @@ For Extras
 
 # 6. The Process Continues
 ##### Given the nature of FOSS software, there are always changes/improvements possible. I will document them here
+1. Gaming
+   1. Steam
+   2. Heroic Games Launcher
