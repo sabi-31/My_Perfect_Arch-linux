@@ -428,6 +428,16 @@ Special Credits to:
 # 4. Post-Install
 ##### First Boot and setting up some defaults as well as basic checks on the system
 1. Update Pacman and install essential packages:
+	1. Drivers and Codecs
+	2. Useful programs
+      	1. la
+      	2. AUR Helper
+      	3. IDE
+	3. Enable Flatpaks
+	4. 
+
+
+
 	ffmpeg, *vaapi*, gstreamer mesa, pipewire, pipewire-pulse
 	zsh, *fsck*, man-db, man-pages, findutils
 	Arch recommended for hyprland desktop - dolphin, dunst, grim, kitty, polkit-kde-agent, qt5-wayland, qt6-wayland, slurp, wofi, xdg-desktop-portal-hyprland, htop, iwd, wget, wireless_tools wpa_supplicant, xdg-utils
@@ -436,10 +446,7 @@ Special Credits to:
 	Optional Repos - multilib, testing
 	Flatpaks
 
-2. Check Journal(journalctl -exb) and systemctl failed units (systemctl --failed)
-
-
-1. Snapper and snapshots
+2. Snapper and snapshots
 	Btrfs-Assistant
 	Auto Snapshots and Cleanup
 	Disable indexing of snapshots
