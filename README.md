@@ -26,6 +26,8 @@ Key features:
 
 This guide assumes that you are on a UEFI system.
 
+> While I will try to explain why and what I'm doing here, this is not a noob friendly guide. You need to know at least basic concepts of linux and know your way around the terminal.
+
 > A lot of the stuff I will talk about here, was hugely inspired by other people in the community and their work. 
 
 Special Credits to:
@@ -311,7 +313,7 @@ Special Credits to:
 	
 	```
 	pacman -Sy archlinux-keyring
-	pacstrap -K /mnt base base-devel linux linux-firmware amd-ucode cryptsetup btrfs-progs dosfstools util-linux git networkmanager sudo openssh vim
+	pacstrap -K /mnt base base-devel linux linux-firmware amd-ucode cryptsetup btrfs-progs dosfstools util-linux git networkmanager sudo openssh vim xorg-xwayland
 	```
 
 11. Chroot into the install and do basic setup
@@ -437,6 +439,7 @@ Special Credits to:
 	systemctl enable systemd-resolved NetworkManager
 	systemctl mask systemd-networkd
 	[Reflector](https://ostechnix.com/retrieve-latest-mirror-list-using-reflector-arch-linux/)
+	sshd
 	```
 
 15. Bootloader Installation
@@ -448,48 +451,116 @@ Special Credits to:
 	systemctl reboot --firmware-setup
 	```
 
+	Now in the Firmware setup menu, select the entry for Arch/The Disk as the Main Entry.
+	You will be asked to enter the disk encryption password, post which you can login and use the installation.
+	COngrats, you have a minimal arch linux system installed.
+
 
 ---
 
 # 4. Post-Install
-##### First Boot and setting up some defaults as well as basic checks on the system
+### While we have a working system now, we are missing a lot of utilities which make it actually usuable. In this section, I will walk through installing and configuring them.
+
 1. Update Pacman and install essential packages:
 	1. Drivers and Codecs
+		
+		Generic:
+		```
+		sudo pacman -S ffmpeg gstreamer mesa 
+		```
+
+		Amd GPU Specific:
+		```
+		sudo pacman -S vulkan-radeon lib32-mesa mesa-vdpau libva-mesa-driver
+		paru -S amdgpu_top
+		```
+
+		>The amdgpu-top package is a tui+gui application to monitor your gpu usage. It needs paru/yay installed, which I do below.
+
+		Nvidia GPU:
+		>I don't have an Nvidia GPU, so you have to test this part yourself, refer this [link](https://github.com/korvahannu/arch-nvidia-drivers-installation-guide).
+	
 	2. Shell and Fonts
-	3. Useful programs
+
+		```
+		sudo pacman -S zsh ttf-jetbrains-mono-nerd
+		```
+
+	3. Audio
+		
+		```
+		sudo pacman -S pipewire pipewire-pulse pavucontrol
+		```
+
+		>All of these won't be really relevant until we install Hyprland.
+
+	4. Useful programs
       	1. Utilities
-			unzip, sbctl, kitty
+			
+			```
+			sudo pacman -S unzip man-db man-pages wget htop 
+			```
+
       	2. AUR Helper
-         	1. Paru install, disable auto update of pacman packagesf
+         	>I will install [paru](https://github.com/Morganamilo/paru) to help me download and install AUR packages.
+			
+			```
+			sudo pacman -S --needed base-devel
+			git clone https://aur.archlinux.org/paru.git
+			cd paru
+			makepkg -si
+			```
+			
+
       	3. IDE
-	4. Flatpaks
-	5. [Optional Repositories](https://wiki.archlinux.org/title/Official_repositories#)
+
+	5. Flatpak
+	
+		```
+		sudo pacman -S flatpak
+		```
+
+		You can search for applications you need on [Flathun](https://flathub.org/).
+
+	6. [Optional Repositories](https://wiki.archlinux.org/title/Official_repositories#)
         I will be enabling the Multilib repo(because I need Steam).
-				vim /etc/pacman.conf
-				[multilib]
-				Include = /etc/pacman.d/mirrorlist
+		```
+		vim /etc/pacman.conf
+		```
+		Uncomment the below lines by removing the '#'
+		[multilib]
+		Include = /etc/pacman.d/mirrorlist
 
 
 
+2. Install Hyprland and other helpful gui applications
+	
+	```
+	sudo pacman -S hyprland dolphin kitty wofi waybar polkit-kde-agent grim kitty qt5-wayland qt6-wayland slurp xdg-desktop-portal-hyprland xdg-utils
+	paru -S wlogout
+	```
 
-	ffmpeg, *vaapi*, gstreamer mesa, pipewire, pipewire-pulse
-	zsh, *fsck*, man-db, man-pages, findutils
-	Arch recommended for hyprland desktop - dolphin, dunst, grim, kitty, polkit-kde-agent, qt5-wayland, qt6-wayland, slurp, wofi, xdg-desktop-portal-hyprland, htop, iwd, wget, wireless_tools wpa_supplicant, xdg-utils
-	https://wiki.archlinux.org/title/Xorg#Driver_installation - AMD Drivers (Arch recommended) - libva-mesa-driver, mesa, vulkan-radeon, xf86-video-amdgpu, xf86-video-ati xorg-server, xorg-xinit, mesa-vdpau
-
-	Optional Repos - multilib, testing
-
-
-2. Backup Luks Headers and Keys
+3. Backup Luks Headers and Keys
 	1. Backup
 	2. TPM auto unlocking
 		1. [tpm - clear old keys first](https://wiki.archlinux.org/title/Trusted_Platform_Module#systemd-cryptenroll)
 
-3. Setup Auto Unlocking via TPM
 
+
+3. Setup Auto Disk Decryption via TPM
+	1. Check if you have a TPM
+	2. Generate a key to register in the TPM
+	3. Register the key and test
+	4. How to remove the key from the TPM
 
 
 5. Install rEFInd
+
+	```
+	sudo pacman -S refind
+	refind-install
+	```
+
 	<details>
 		<summary>Why do I need both rEFInd and systemd-boot? </summary>
 		- rEFInd Btrfs
@@ -502,18 +573,44 @@ Special Credits to:
 
 
 6. Secure Boot
-	SBCTL
+	>We will generate our own secure boot keys, enroll them in our Motherboard firmware, and sign our kernel modules and other efi binaries with them. There's an amazing tool know as [sbctl](https://github.com/Foxboron/sbctl) which does most of the heavy lifting for us.
+
+	```
+	sudo pacman -S sbctl
+	```
+
 	[Secure Boot 1](https://0pointer.net/blog/unlocking-luks2-volumes-with-tpm2-fido2-pkcs11-security-hardware-on-systemd-248.html)
 
 
-7. Installing Hyprland
+7. Snapper and snapshots
+	> Alright, all the efforts we put into btrfs and subvolumes, will help us now.
 
-8. 2. Snapper and snapshots
-	Btrfs-Assistant
+	By now, you must be aware of the btrfs snapshot feature. There is a tool developed by OpenSuse know as [snapper](https://github.com/openSUSE/snapper) which is a helper application for this purpose. Using snapper, we will create a config for our root subvolume (@) containing most of our system data, and another for the home subvolume(@home), which contains most of our user data. Then we can setup snapper to create and manager snapshots of them, to safeguard and if necessary, rollback this data (Remember, the other subvolumes we created are exempt from this). Snapper can also do automatic snapshots on a schedule, and there's a pacman hook known as snap-pac that can create snapshots whenever we use pacman to install/upgrade our system.
+
+	```
+	sudo pacman -S snapper snap-pac
+	```
+
+	Run the below commands in order to:
+		1. Create Snapper Configurations
+		2. Enable your user to work with them without sudo privileges
+		3. Setup Automatic Creation and Cleanup of snapshots
+		4. Disable Indexing of snapshtos to improve performance.
+
+		```
+		sudo snapper -c root create-config /
+		
+		```
+
 	Auto Snapshots Timer and Cleanup
 	Disable indexing of snapshots
 	[wiki-preventing-slowdowns](https://wiki.archlinux.org/title/Snapper#Preventing_slowdowns)
-	Disbale cow for other subvolumes - chattr +C /mnt/@/var
+
+	There is a gui application available for snapper that can be installed with:
+
+	```
+	paru -S btrfs-assistant
+	```
 
 8. Misc:
 	1. Audio
@@ -529,6 +626,8 @@ Special Credits to:
 	11. Install lts kernel for fallback
 	12. Firewall
 	13. Enable reflector on boot
+	14. VS Code
+	15. Discord
 
 9.  System Maintainence
 	1. Btrfs filesystem
@@ -538,11 +637,15 @@ Special Credits to:
 	2. Recovering from issues with the help of Snapshots
 		1. [Snapshot Rollbacks]
 		2. [Snapshot Booting](https://wiki.archlinux.org/title/Btrfs#Booting_into_snapshots)
----
 
+
+> At this point we have a system with a good base and security features while also offering style(kinda) and convinience. You can stop at this point and install anything else you need for your workflow, but we know you won't, which brings us to the next section.
+
+---
 
 # 5. Ricing
 ##### The stuff everyone actually cares about
+1. ZSH
 1. Hyprland
  1. Workspace Overview
  2. Fractional Scaling
@@ -552,12 +655,12 @@ Special Credits to:
 3. Waybar
 4. Wlogout
 5. Pywal
-6. Alacritty
+6. kitty
 7. Plymouth
 ---
 
-# 6. The Process Continues
-##### Given the nature of FOSS software, there are always changes/improvements possible. I will document them here
+# 6. Extra Extras
+##### At this point, you are pretty much set up. I will document some more stuff here, which might be interesting to you, but also can be safely ignored if you wish so.
 1. Gaming
-   1. Steam
+   1. Steam + Gamescope
    2. Heroic Games Launcher
