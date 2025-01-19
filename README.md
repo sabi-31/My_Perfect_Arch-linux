@@ -480,10 +480,21 @@ Special Credits to:
 		Nvidia GPU:
 		>I don't have an Nvidia GPU, so you have to test this part yourself, refer this [link](https://github.com/korvahannu/arch-nvidia-drivers-installation-guide).
 	
+	2. AUR Helper
+         	>I will install [paru](https://github.com/Morganamilo/paru) to help me download and install AUR packages.
+			
+			```
+			sudo pacman -S --needed base-devel
+			git clone https://aur.archlinux.org/paru.git
+			cd paru
+			makepkg -si
+			```
+	
 	2. Shell and Fonts
 
 		```
 		sudo pacman -S zsh ttf-jetbrains-mono-nerd
+		chsh /usr/bin/zsh
 		```
 
 	3. Audio
@@ -494,25 +505,12 @@ Special Credits to:
 
 		>All of these won't be really relevant until we install Hyprland.
 
-	4. Useful programs
-      	1. Utilities
+	4. Utilities
 			
-			```
-			sudo pacman -S unzip man-db man-pages wget htop 
-			```
+		```
+		sudo pacman -S unzip man-db man-pages wget htop 
+		```
 
-      	2. AUR Helper
-         	>I will install [paru](https://github.com/Morganamilo/paru) to help me download and install AUR packages.
-			
-			```
-			sudo pacman -S --needed base-devel
-			git clone https://aur.archlinux.org/paru.git
-			cd paru
-			makepkg -si
-			```
-			
-
-      	3. IDE
 
 	5. Flatpak
 	
@@ -520,13 +518,15 @@ Special Credits to:
 		sudo pacman -S flatpak
 		```
 
-		You can search for applications you need on [Flathun](https://flathub.org/).
+		You can search for applications you need on [Flathub](https://flathub.org/).
 
 	6. [Optional Repositories](https://wiki.archlinux.org/title/Official_repositories#)
         I will be enabling the Multilib repo(because I need Steam).
+		
 		```
 		vim /etc/pacman.conf
 		```
+		
 		Uncomment the below lines by removing the '#'
 		[multilib]
 		Include = /etc/pacman.d/mirrorlist
@@ -536,25 +536,17 @@ Special Credits to:
 2. Install Hyprland and other helpful gui applications
 	
 	```
-	sudo pacman -S hyprland dolphin kitty wofi waybar polkit-kde-agent grim kitty qt5-wayland qt6-wayland slurp xdg-desktop-portal-hyprland xdg-utils
+	sudo pacman -S hyprland dolphin kitty wofi waybar hyprpolkitagent grim kitty qt5-wayland qt6-wayland slurp xdg-desktop-portal-hyprland xdg-utils
 	paru -S wlogout
 	```
 
-3. Backup Luks Headers and Keys
-	1. Backup
-	2. TPM auto unlocking
-		1. [tpm - clear old keys first](https://wiki.archlinux.org/title/Trusted_Platform_Module#systemd-cryptenroll)
+	Set this line in your hyprland config:
+	exec-once = systemctl --user start hyprpolkitagent
 
 
 
-3. Setup Auto Disk Decryption via TPM
-	1. Check if you have a TPM
-	2. Generate a key to register in the TPM
-	3. Register the key and test
-	4. How to remove the key from the TPM
 
-
-5. Install rEFInd
+4. Install rEFInd
 
 	```
 	sudo pacman -S refind
@@ -572,17 +564,92 @@ Special Credits to:
 
 
 
-6. Secure Boot
-	>We will generate our own secure boot keys, enroll them in our Motherboard firmware, and sign our kernel modules and other efi binaries with them. There's an amazing tool know as [sbctl](https://github.com/Foxboron/sbctl) which does most of the heavy lifting for us.
+6. Setup Secure Boot
+	>We will generate our own secure boot keys, enroll them in our Motherboard firmware, and sign our kernel modules and other efi binaries with them. There's an amazing tool known as [sbctl](https://github.com/Foxboron/sbctl) which does most of the heavy lifting for us.
 
 	```
 	sudo pacman -S sbctl
 	```
 
+	Once sbctl is downloaded, you need to make sure your motherboard is in setup mode, so that you can enroll your keys into it. This is done typically by clearing out the existing secure boot keys in the motherboard settings. Look up how to do this for your brand of motherboard.
+
+	>Many motherboards have the ability to restore the keys that you removed (I can confirm this for Asrock). Also if you ever update the firmware of the motherboard, you might have to enroll your own keys again.
+
+	Check if motherboard is in Setup mode:
+
+	```
+	sbctl status
+	```
+
+	Post confirmation, we will generate our keys, enroll them into the motherboard(along with Microsoft keys for windows comapatibility).
+	These keys are stored in the '/var/lib/sbctl/keys' directory. It's not a bad idea to back them up.
+
+	```
+	sudo sbctl create-keys
+	sudo sbctl enroll-keys -m
+	sudo sbctl status
+	```
+
+	Now we will sign our kernel, bootloader and boot manager(refind) files with our keys. We will also instruct sbctl to sign any future kernels images automatically.
+	The 'sbctl verify' command lists all files that need to be signed and checks whether they are signed or not. We will then use 'sbctl sign -s $filename' to sign now and in the future with any updates.
+
+	```
+	sudo sbctl verify
+	sudo sbctl sign -s /efi/EFI/Linux/arch-linux.efi
+	sudo sbctl sign -s /efi/EFI/Linux/arch-linux-fallback.efi
+	sudo sbctl sign -s /efi/EFI/BOOT/BOOTX64.EFI
+	sudo sbctl sign -s /efi/EFI/systemd/systemd-bootx64.efi
+	sudo sbctl sign -s /efi/EFI/refind/drivers_x64/btrfs_x64.efi
+	sudo sbctl sign -s /efi/EFI/refind/refind_x64.efi
+	```
+
+	Now we can re-enable secure boot, and it should work fine.
+
 	[Secure Boot 1](https://0pointer.net/blog/unlocking-luks2-volumes-with-tpm2-fido2-pkcs11-security-hardware-on-systemd-248.html)
 
 
-7. Snapper and snapshots
+
+3. Improve Encryption Experience [Read More](https://0pointer.net/blog/unlocking-luks2-volumes-with-tpm2-fido2-pkcs11-security-hardware-on-systemd-248.html)
+    1. Backup LUKS Headers
+		I have already explained previously why you might want to backup you luks header, which stores data about and controls your drive decryption.
+		To backup the header, run:
+
+		```
+		sudo cryptsetup luksHeaderBackup /dev/gpt-auto-root-luks --header-backup-file luks-header-backup.img
+		```
+
+		This will generate a file 'luks-header-backup.img' in your current directory. Save this in another drive, in the cloud (depending on your threat model), or into a password manager like bitwarden. If your header ever gets corrupted, you can boot from another iso, and restore it using:
+
+		```
+		cryptsetup luksHeaderRestore /dev/device --header-backup-file /path-to/luks-header-backup.img
+		```
+
+    2. Enroll and backup an extra key
+		While we normally use a passord to unlock the luks header, it can support multiple unlocking options, one of which is a key, auto-generate by the system with a key
+
+    3. Setup Auto Unlocking via a Yubikey
+	
+    4. Setup auto unlocking via TPM
+		Check if you have a tpm by running:
+
+		```
+		ls /sys/class/tpm
+		```
+
+		If you see an output like tpm0, them a tpm device exists
+		
+		Choose which PCR's to use. A pcr is a register on the TPM that can measure specific values, like is secure boot on or off, what is the firmware version,etc. You can see the full list [Here](https://wiki.archlinux.org/title/Trusted_Platform_Module#Accessing_PCR_registers)
+		I will use PCR 0,7
+
+		Enroll the TPM to the luks device with selected PCR's
+		
+		```
+		sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=0+7  /dev/gpt-auto-root-luks
+		```
+
+
+
+4. Snapper and snapshots
 	> Alright, all the efforts we put into btrfs and subvolumes, will help us now.
 
 	By now, you must be aware of the btrfs snapshot feature. There is a tool developed by OpenSuse know as [snapper](https://github.com/openSUSE/snapper) which is a helper application for this purpose. Using snapper, we will create a config for our root subvolume (@) containing most of our system data, and another for the home subvolume(@home), which contains most of our user data. Then we can setup snapper to create and manager snapshots of them, to safeguard and if necessary, rollback this data (Remember, the other subvolumes we created are exempt from this). Snapper can also do automatic snapshots on a schedule, and there's a pacman hook known as snap-pac that can create snapshots whenever we use pacman to install/upgrade our system.
@@ -612,29 +679,20 @@ Special Credits to:
 	paru -S btrfs-assistant
 	```
 
-8. Misc:
-	1. Audio
-	2. AppArmor
-	3. [fwupd](https://github.com/fwupd/fwupd)
-	4. Cleanup alsa
-	5. Check systemctl services
-	6. Swapfs
-	7. [Maintainence](https://gist.github.com/MaxXor/ba1665f47d56c24018a943bb114640d7)
-	8. CLear pacman cache - https://wiki.archlinux.org/title/Pacman#Cleaning_the_package_cache, https://wiki.archlinux.org/title/Pacman/Tips_and_tricks#Removing_unused_packages_(orphans)
-	9. Enable https://wiki.archlinux.org/title/Pkgstats to help the community
-	10. Read Messages during system upgrade
-	11. Install lts kernel for fallback
-	12. Firewall
-	13. Enable reflector on boot
-	14. VS Code
-	15. Discord
 
-9.  System Maintainence
-	1. Btrfs filesystem
+	
+
+8.  System Maintainence
+	1. [Maintainence](https://gist.github.com/MaxXor/ba1665f47d56c24018a943bb114640d7)
+
+
+	2. Btrfs filesystem
 		1. [Defragmentation](https://wiki.archlinux.org/title/Btrfs#Defragmentation)
-		2. 
+		2. Scrub
+		3. Balance
 
-	2. Recovering from issues with the help of Snapshots
+
+	3. Snapshot Rollbacks
 		1. [Snapshot Rollbacks]
 		2. [Snapshot Booting](https://wiki.archlinux.org/title/Btrfs#Booting_into_snapshots)
 
@@ -646,21 +704,30 @@ Special Credits to:
 # 5. Ricing
 ##### The stuff everyone actually cares about
 1. ZSH
-1. Hyprland
- 1. Workspace Overview
- 2. Fractional Scaling
- 3. Notification Daemon
- 4. [l1](https://github.com/mylinuxforwork/dotfiles/tree/main/share) and [l2](https://www.youtube.com/watch?v=J1L1qi-5dr0)
-2. Wofi
-3. Waybar
-4. Wlogout
-5. Pywal
-6. kitty
-7. Plymouth
+2. Splash Image
+3. Hyprland
+ 4. Workspace Overview
+ 5. Fractional Scaling
+ 6. Notification Daemon
+ 7. [l1](https://github.com/mylinuxforwork/dotfiles/tree/main/share) and [l2](https://www.youtube.com/watch?v=J1L1qi-5dr0)
+4. Wofi
+5. Waybar
+6. Wlogout
+7. Pywal
+8. kitty
+9. Plymouth
 ---
 
-# 6. Extra Extras
+# 6. Extras
 ##### At this point, you are pretty much set up. I will document some more stuff here, which might be interesting to you, but also can be safely ignored if you wish so.
 1. Gaming
    1. Steam + Gamescope
    2. Heroic Games Launcher
+2. AppArmor
+3. VS Code
+4. 
+5. [fwupd](https://github.com/fwupd/fwupd)
+6. Enable https://wiki.archlinux.org/title/Pkgstats to help the community
+7. Extra kernels
+8. Firewall
+9. Sign an Arch iso with your keys
