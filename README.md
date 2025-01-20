@@ -550,14 +550,14 @@ Special Credits to:
 2. Install Hyprland and other helpful gui applications
 	
 	```
-	sudo pacman -S hyprland dolphin kitty wofi waybar hyprpolkitagent grim kitty qt5-wayland qt6-wayland slurp xdg-desktop-portal-hyprland xdg-utils
+	sudo pacman -S hyprland dolphin kitty wofi waybar hyprpolkitagent grim kitty qt5-wayland qt6-wayland slurp xdg-desktop-portal-hyprland xdg-utils vlc
 	paru -S wlogout
 	```
 
 	Set this line in your hyprland config:
 	exec-once = systemctl --user start hyprpolkitagent
 
-	
+	https://wiki.archlinux.org/title/XDG_MIME_Applications
 
 
 4. Install rEFInd
@@ -575,6 +575,7 @@ Special Credits to:
 		- Management is easier of systemd-boot
 	</details>
 
+	### Refind BTRFS
 
 
 
@@ -748,19 +749,25 @@ Special Credits to:
 
 2. ZSH
 3. Splash Image
-	imagemagick
+	
+	```
+	sudo pacman -S imagemagick
+	magick in.png -type truecolor put.bmp
+	```
+
 4. Hyprland
  5. Workspace Overview
  6. Fractional Scaling
  7. Notification Daemon
  8. [l1](https://github.com/mylinuxforwork/dotfiles/tree/main/share) and [l2](https://www.youtube.com/watch?v=J1L1qi-5dr0)
 5. [Night Light](https://wiki.archlinux.org/title/Redshift)
-6. Wofi
-7. Waybar
-8. Wlogout
-9. Pywal
-10. kitty
-11. Plymouth
+6. Plymouth
+7. Wofi
+8. Waybar
+9. Wlogout
+10. Pywal
+11. kitty
+12. Plymouth
 ---
 
 # 6. Extras
@@ -770,8 +777,9 @@ Special Credits to:
    2. Heroic Games Launcher
 2. AppArmor
 3. VS Code
-4. 
-5. [fwupd](https://github.com/fwupd/fwupd)
-6. Enable https://wiki.archlinux.org/title/Pkgstats to help the community
-7. Extra kernels
-8. Sign an Arch iso with your keys
+4. Clipboard manager
+5. 
+6. [fwupd](https://github.com/fwupd/fwupd)
+7. Enable https://wiki.archlinux.org/title/Pkgstats to help the community
+8. Extra kernels
+9. Sign an Arch iso with your keys
