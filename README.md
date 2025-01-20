@@ -313,7 +313,7 @@ Special Credits to:
 	
 	```
 	pacman -Sy archlinux-keyring
-	pacstrap -K /mnt base base-devel linux linux-firmware amd-ucode cryptsetup btrfs-progs dosfstools util-linux git networkmanager sudo openssh vim xorg-xwayland
+	pacstrap -K /mnt base base-devel linux linux-firmware amd-ucode cryptsetup btrfs-progs dosfstools posix util-linux git networkmanager sudo openssh vim xorg-xwayland
 	```
 
 11. Chroot into the install and do basic setup
@@ -350,7 +350,21 @@ Special Credits to:
 		systemd-firstboot --prompt
 		```
 
-	3. Set pacman Cache directory to be in /tmp
+	3. Pacman
+		Improve pacman defaults:
+		
+		```
+		vim /etc/pacman.conf
+		```
+		Under misc option, uncomment the following lines:
+		Color
+		ParallelDownloads = 5
+
+		And add the line:
+		ILoveCandy
+
+
+		Change the pacman cache directory folder location
 
 		```
 		vim /etc/pacman.conf
@@ -390,7 +404,7 @@ Special Credits to:
 			mount -o subvol=@ssh /dev/mapper/root /mnt/home/$USER/.ssh
 		```
 
-9.  Generate fstab
+13. Generate fstab
 	>fstab is a file referenced by the system during boot to mount your drives/partitions to the correct location. Since we have already mounted our drives, we will use the **genfstab** utility to output the fstab file with the options we chose earlier, and save it, so that in the future these options are used by default.
 
 	```
@@ -543,7 +557,7 @@ Special Credits to:
 	Set this line in your hyprland config:
 	exec-once = systemctl --user start hyprpolkitagent
 
-
+	
 
 
 4. Install rEFInd
@@ -609,7 +623,7 @@ Special Credits to:
 
 
 
-3. Improve Encryption Experience [Read More](https://0pointer.net/blog/unlocking-luks2-volumes-with-tpm2-fido2-pkcs11-security-hardware-on-systemd-248.html)
+7. Improve Encryption Experience [Read More](https://0pointer.net/blog/unlocking-luks2-volumes-with-tpm2-fido2-pkcs11-security-hardware-on-systemd-248.html)
     1. Backup LUKS Headers
 		I have already explained previously why you might want to backup you luks header, which stores data about and controls your drive decryption.
 		To backup the header, run:
@@ -649,7 +663,32 @@ Special Credits to:
 
 
 
-4. Snapper and snapshots
+
+
+
+8. Enable Swap and Hibernation
+
+
+9. Security
+	1. Firewall
+	2. 
+
+10.  System Maintainence
+	1. [Maintainence](https://gist.github.com/MaxXor/ba1665f47d56c24018a943bb114640d7)
+
+
+	2. Btrfs filesystem
+		1. [Defragmentation](https://wiki.archlinux.org/title/Btrfs#Defragmentation)
+		2. Scrub
+		3. Balance
+
+
+	3. Snapshot Rollbacks
+		1. [Snapshot Rollbacks]
+		2. [Snapshot Booting](https://wiki.archlinux.org/title/Btrfs#Booting_into_snapshots)
+
+
+11. Snapper and snapshots
 	> Alright, all the efforts we put into btrfs and subvolumes, will help us now.
 
 	By now, you must be aware of the btrfs snapshot feature. There is a tool developed by OpenSuse know as [snapper](https://github.com/openSUSE/snapper) which is a helper application for this purpose. Using snapper, we will create a config for our root subvolume (@) containing most of our system data, and another for the home subvolume(@home), which contains most of our user data. Then we can setup snapper to create and manager snapshots of them, to safeguard and if necessary, rollback this data (Remember, the other subvolumes we created are exempt from this). Snapper can also do automatic snapshots on a schedule, and there's a pacman hook known as snap-pac that can create snapshots whenever we use pacman to install/upgrade our system.
@@ -670,6 +709,14 @@ Special Credits to:
 		```
 
 	Auto Snapshots Timer and Cleanup
+
+	```
+	vim /etc/updatedb.conf
+	```
+	PRUNENAMES = ".snapshots "
+	PRUNEPATHS = "/media"
+	PRUNE_BIND_MOUNTS = no
+
 	Disable indexing of snapshots
 	[wiki-preventing-slowdowns](https://wiki.archlinux.org/title/Snapper#Preventing_slowdowns)
 
@@ -680,42 +727,40 @@ Special Credits to:
 	```
 
 
-	
-
-8.  System Maintainence
-	1. [Maintainence](https://gist.github.com/MaxXor/ba1665f47d56c24018a943bb114640d7)
-
-
-	2. Btrfs filesystem
-		1. [Defragmentation](https://wiki.archlinux.org/title/Btrfs#Defragmentation)
-		2. Scrub
-		3. Balance
-
-
-	3. Snapshot Rollbacks
-		1. [Snapshot Rollbacks]
-		2. [Snapshot Booting](https://wiki.archlinux.org/title/Btrfs#Booting_into_snapshots)
-
-
 > At this point we have a system with a good base and security features while also offering style(kinda) and convinience. You can stop at this point and install anything else you need for your workflow, but we know you won't, which brings us to the next section.
 
 ---
 
 # 5. Ricing
 ##### The stuff everyone actually cares about
-1. ZSH
-2. Splash Image
-3. Hyprland
- 4. Workspace Overview
- 5. Fractional Scaling
- 6. Notification Daemon
- 7. [l1](https://github.com/mylinuxforwork/dotfiles/tree/main/share) and [l2](https://www.youtube.com/watch?v=J1L1qi-5dr0)
-4. Wofi
-5. Waybar
-6. Wlogout
-7. Pywal
-8. kitty
-9. Plymouth
+1. Dark Mode
+	#####Dark mode
+	This is a quick and easy dark mode using the adwaita theme, [Read More](https://wiki.archlinux.org/title/Dark_mode_switching)
+	
+	```
+	sudo pacman -S gnome-themes-extra
+	paru -S qt5-adwaita-git qt6-adwaita-git
+	export GTK_THEME=Adwaita:dark
+	export GTK2_RC_FILES=/usr/share/themes/Adwaita-dark/gtk-2.0/gtkrc
+	export QT_STYLE_OVERRIDE=Adwaita-Dark
+	```
+	
+
+2. ZSH
+3. Splash Image
+	imagemagick
+4. Hyprland
+ 5. Workspace Overview
+ 6. Fractional Scaling
+ 7. Notification Daemon
+ 8. [l1](https://github.com/mylinuxforwork/dotfiles/tree/main/share) and [l2](https://www.youtube.com/watch?v=J1L1qi-5dr0)
+5. [Night Light](https://wiki.archlinux.org/title/Redshift)
+6. Wofi
+7. Waybar
+8. Wlogout
+9. Pywal
+10. kitty
+11. Plymouth
 ---
 
 # 6. Extras
@@ -729,5 +774,4 @@ Special Credits to:
 5. [fwupd](https://github.com/fwupd/fwupd)
 6. Enable https://wiki.archlinux.org/title/Pkgstats to help the community
 7. Extra kernels
-8. Firewall
-9. Sign an Arch iso with your keys
+8. Sign an Arch iso with your keys
