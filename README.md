@@ -667,8 +667,45 @@ Special Credits to:
 
 
 
-8. Enable Swap and Hibernation
+8. Swap and Hibernation
+	For swap, I will use zram instaled of a swap partition
+	[https://wiki.archlinux.org/title/Zram]https://wiki.archlinux.org/title/Zram
 
+
+	Hibernation [Read More](https://wiki.archlinux.org/title/Power_management/Suspend_and_hibernate#)
+	Without going into too many details, suspend capabilites are built into the kernel and should be available to use directly. If you want to use hibernate, you need a swap partition and some setup which is explained in the link above. 
+	For my AMD system, with a B650 motherboard, I can see that the hardware supports S2Idle (aka saving data on RAM and powering all other components off). I am fine with this method.
+
+	I did have troubles waking my system back up after sending it to suspend. On reading the wiki, I can across a [solution](https://wiki.archlinux.org/title/Power_management/Suspend_and_hibernate#PC_will_not_wake_from_sleep_on_A520I_and_B550I_motherboards), which worked perfectly. 
+	Firstly, run the below command and check if GPP0 is enabled from the output
+
+	```
+	cat /proc/acpi/wakeup
+	```
+
+	If it is, run the below commands to disbale it, and test suspend is working:
+
+	```
+	su
+	echo GPP0 > /proc/acpi/wakeup
+	systemctl suspend
+	```
+
+	If this works fine, make this change permanent by creatin the following file:
+
+	```
+	vim /etc/systemd/system/toggle-gpp0-to-fix-wakeup.service
+	```
+
+	Add the following lines to it:
+	[Unit]
+	Description="Disable GPP0 to fix suspend issue"
+
+	[Service]
+	ExecStart=/bin/sh -c "/bin/echo GPP0 > /proc/acpi/wakeup"
+
+	[Install]
+	WantedBy=multi-user.target
 
 9. Security
 	1. Firewall
@@ -776,10 +813,11 @@ Special Credits to:
    1. Steam + Gamescope
    2. Heroic Games Launcher
 2. AppArmor
-3. VS Code
-4. Clipboard manager
-5. 
-6. [fwupd](https://github.com/fwupd/fwupd)
-7. Enable https://wiki.archlinux.org/title/Pkgstats to help the community
-8. Extra kernels
-9. Sign an Arch iso with your keys
+3. [Power Management](https://wiki.archlinux.org/title/Power_management#)
+4. VS Code
+5. Clipboard manager
+6. [CPU Frequency Scaling](https://wiki.archlinux.org/title/CPU_frequency_scaling)
+7. [fwupd](https://github.com/fwupd/fwupd)
+8. Enable https://wiki.archlinux.org/title/Pkgstats to help the community
+9. Extra kernels
+10. Sign an Arch iso with your keys
