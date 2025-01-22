@@ -1,75 +1,79 @@
-## Table of Contents
+Table of Contents
 
-1. [Introduction and Credits](#1_introduction-and-credits)
-1. [Pre-Install](#2_pre-install)
-2. [Installation](#3_installation)
-3. [Post-Install](#4_post-install)
-4. [Ricing](#5_ricing)
-5. [The Process Continues](#6_the-process-continues)
+- [1. Introduction and Credits](#1-introduction-and-credits)
+			- [ This guide assumes that you are on a UEFI system. ](#-this-guide-assumes-that-you-are-on-a-uefi-system-)
+- [2. Pre-Install](#2-pre-install)
+- [3. Installation](#3-installation)
+- [4. Post-Install](#4-post-install)
+- [5. Ricing](#5-ricing)
+- [6. Extras](#6-extras)
 
----
 
 # 1. Introduction and Credits
-> This was supposed to be a personal reference document, but I ended up formatting it as a guide since I think it will be helpful to many people out there who want the same type of install. I will walk through and explain the rationale behind all the steps from beginning to end, towards installing what is (subjectively) a perfect arch linux install. 
+> I started this as a personal reference document, but I ended up formatting it as a guide since I think it will be helpful to many people out there who want the same type of install. I will walk through and explain the rationale behind all the steps from beginning to end, towards installing what is (subjectively) a perfect arch linux install. 
 
 Key features:
 
-1. BTRFS + Snapper rollbacks.
-2. Fully encrypted Root partition.
+1. BTRFS Filesystem + Snapper rollbacks.
+2. Root Partition Encryption + TPM unlocking.
 3. Unified Kernel Images.
 4. Secure Boot.
-5. Dual Boot.
-6. Snapshot Booting with rEFInd btrfs.
+5. Snapshot Booting with rEFInd btrfs.
+6. System Maintainence and Best Practises.
 7. Hyprland + Apps.
-8. System Maintainence and Best Practises.
-9. Ricing and Dotfiles.
+8. Ricing and Dotfiles.
 
-This guide assumes that you are on a UEFI system.
+#### <mark style='background-color:orange'> This guide assumes that you are on a UEFI system. </mark>
 
-> While I will try to explain why and what I'm doing here, this is not a noob friendly guide. You need to know at least basic concepts of linux and know your way around the terminal.
+> While I will try to explain what I'm doing here and why, this is not a noob friendly guide. You need to have an understanding of basic concepts of linux and know your way around the terminal.
 
-> A lot of the stuff I will talk about here, was hugely inspired by other people in the community and their work. 
+<br>
+A lot of the stuff I will talk about here, was hugely inspired by other people in the community and their work. Special Credits to:
 
-Special Credits to:
-
-1. [This Extensive guide by Walian which was the main motivator.](https://walian.co.uk/arch-install-with-secure-boot-btrfs-tpm2-luks-encryption-unified-kernel-images.html)
+1. [This guide by Walian which was the main motivator.](https://walian.co.uk/arch-install-with-secure-boot-btrfs-tpm2-luks-encryption-unified-kernel-images.html)
 2. [This guide based on fedora by Madhu@sysguides.](https://sysguides.com/install-fedora-with-snapshot-and-rollback-support)
 3. [And offcourse, the Arch Wiki.](https://wiki.archlinux.org/title/Main_page)
 
 > I will try and keep the sections as modular as possible, so if someone wants to, for example, skip setting up secure boot, they can still follow along. I will also be linking some articles and blogposts which I found extremely helpful to understand some of the concepts, which you should definitely read. 
 
-> I am by no means an expert, so I welcome any and all feedback on this. Lets arch.
+I am also by no means an expert, so I welcome any and all feedback on this. Lets arch.
 
 ---
 
 # 2. Pre-Install
-### This is all the preparation you need to do before attempting the install.
-1. Download the arch iso
-	Either use the BitTorrent download (needs a bit-torrent client installed on your machine) or choose your nearest **https** mirror from here -> [https://archlinux.org/download](https://archlinux.org/download). <br><br><br>
+> This is all the preparation you need to do before attempting the install.
 
-2. Verify the Downloaded Image (Optional but recommended)
-	```
-	gpg --keyserver-options auto-key-retrieve --verify archlinux-version-x86_64.iso.sig
-	```
+### 1. Download the arch iso
 
-	where gpg is GnuPG, which needs to be installed on your existing system, and archlinux-version-x86_64.iso.sig is the file you download from the same webpage as the iso. <br><br><br>
+Either use the BitTorrent download (needs a bit-torrent client installed on your machine) or choose your nearest **https** mirror from the [Arch Download Page](https://archlinux.org/download). <br><br>
 
-3. Burn the iso to a usb stick
-	Use a tool like rufus or balena etcher if you are on windows. On linux, you can use KDE ISO Image Wirte, or the Gnome Disk Utility for a good gui application to do this. Many more methods documented on the wiki [here](https://wiki.archlinux.org/title/USB_flash_installation_medium). <br><br>
+
+### 2. Verify the Downloaded Image (Optional but recommended)
+
+```
+gpg --keyserver-options auto-key-retrieve --verify archlinux-version-x86_64.iso.sig
+```	
+
+Where gpg is GnuPG, which needs to be installed on your existing system, and archlinux-version-x86_64.iso.sig is the file you download from the same webpage as the iso. <br><br>
+
+### 3. Create an Installation Medium
+
+Use a tool like rufus or balena etcher if you are on windows. On linux, you can use KDE ISO Image Wirte, or the Gnome Disk Utility for a good gui application to do this. Many more methods documented on the wiki [here](https://wiki.archlinux.org/title/USB_flash_installation_medium). <br>
 	
-	<details>
-	<summary>Ventoy</summary>
-		You can alternatively use a software like ventoy, which prevents the need to burn a iso image to a drive, while also allowing you to have multiple iso images on the same disk. I personally use and love it. You can check out more about here on it's github page -> https://github.com/ventoy/Ventoy
-	</details>
-	<br><br>
+<details>
+<summary>Ventoy</summary>
+	You can alternatively use a software like ventoy, which prevents the need to burn a iso image to a drive, while also allowing you to have multiple iso images on the same disk. I personally use and love it. You can check out more about here on it's github page -> https://github.com/ventoy/Ventoy
+</details>
+<br><br>
 
-4. Identify the Installation Target
-	> If you're like me, and are installing linux on a separate drive, while already having windows on another drive, you need to check and make sure to correctly identify the drive. In linux, you can list all your drives using the command 'lsblk'. It labels SATA drives as sda1,sda2,... and nvme drives as nvme0n1, nvme1n1, etc. To avoid nuking your windows install, make a note of the correct drive. You can identify drives by their labels, existing partition layouts, storage capacity, etc.
+### 4. Identify the Installation Target
+
+> If you're like me, and are installing linux on a separate drive, while already having windows on another drive, you need to check and make sure to correctly identify the drive. In linux, you can list all your drives using the command 'lsblk'. It labels SATA drives as sda1,sda2,... and nvme drives as nvme0n1, nvme1n1, etc. To avoid nuking your windows install, make a note of the correct drive. You can identify drives by their labels, existing partition layouts, storage capacity, etc.
 
 ---
 
 # 3. Installation
-### The Actual Install Process
+> The Actual Install Process
 
 1. Boot from the ISO
 	> Plug in your usb with the Arch ISO, reboot to your PC's Motherboard settings (lookup how to for your model, generally it's by pressing the F2 or del key during boot), and in the boot priority, set the usb as the first to boot from. If secure boot is enabled,you have to disable it. 
@@ -313,7 +317,7 @@ Special Credits to:
 	
 	```
 	pacman -Sy archlinux-keyring
-	pacstrap -K /mnt base base-devel linux linux-firmware amd-ucode cryptsetup btrfs-progs dosfstools posix util-linux git networkmanager sudo openssh vim xorg-xwayland
+	pacstrap -K /mnt base base-devel linux linux-firmware amd-ucode cryptsetup btrfs-progs dosfstools posix util-linux git networkmanager sudo openssh vim xorg-xwayland reflector
 	```
 
 11. Chroot into the install and do basic setup
@@ -473,7 +477,7 @@ Special Credits to:
 ---
 
 # 4. Post-Install
-### While we have a working system now, we are missing a lot of utilities which make it actually usuable. In this section, I will walk through installing and configuring them.
+> While we have a working system now, we are missing a lot of utilities which make it actually usuable. In this section, I will walk through installing and configuring them.
 
 1. Update Pacman and install essential packages:
 	1. Drivers and Codecs
@@ -770,7 +774,7 @@ Special Credits to:
 ---
 
 # 5. Ricing
-##### The stuff everyone actually cares about
+> The stuff everyone actually cares about
 1. Dark Mode
 	#####Dark mode
 	This is a quick and easy dark mode using the adwaita theme, [Read More](https://wiki.archlinux.org/title/Dark_mode_switching)
@@ -808,7 +812,7 @@ Special Credits to:
 ---
 
 # 6. Extras
-##### At this point, you are pretty much set up. I will document some more stuff here, which might be interesting to you, but also can be safely ignored if you wish so.
+> At this point, you are pretty much set up. I will document some more stuff here, which might be interesting to you, but also can be safely ignored if you wish so.
 1. Gaming
    1. Steam + Gamescope
    2. Heroic Games Launcher
