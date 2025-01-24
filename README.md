@@ -1,7 +1,6 @@
 Table of Contents
 
 - [1. Introduction and Credits](#1-introduction-and-credits)
-			- [ This guide assumes that you are on a UEFI system. ](#-this-guide-assumes-that-you-are-on-a-uefi-system-)
 - [2. Pre-Install](#2-pre-install)
 - [3. Installation](#3-installation)
 - [4. Post-Install](#4-post-install)
