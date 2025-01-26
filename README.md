@@ -10,9 +10,13 @@ Table of Contents
 ---
 ---
 # 1. Introduction and Credits
-> I started this as a personal reference document, but I ended up formatting it as a guide since I think it will be helpful to many people out there who want the same type of install. I will walk through and explain the rationale behind all the steps from beginning to end, towards installing what is (subjectively) a perfect arch linux install. 
+> I started this as a personal reference document, but I ended up formatting it as a guide since I think it will be helpful to many people out there who want the same type of install. 
+I will walk through and explain the rationale behind all the steps from beginning to end, towards installing what is (subjectively) a perfect arch linux install.
+Please note that this IS NOT meant to be a replacement of the official arch installation documentation. It's just how I did it.
+If you haven't already, read the [official guide](https://wiki.archlinux.org/title/Installation_guide) and try that out in a VM and understand what is happening. 
+Then if you want a system like me, follow this guide for reference.
 
-Key features:
+### This Guide will help you have the following install:
 
 1. BTRFS Filesystem + Snapper rollbacks.
 2. Root Partition Encryption + TPM unlocking.
@@ -23,9 +27,17 @@ Key features:
 7. Hyprland + Apps.
 8. Ricing and Dotfiles.
 
-#### <mark style='background-color:orange'> This guide assumes that you are on a UEFI system. </mark>
+### I have tested it on the following hardware:
 
-> While I will try to explain what I'm doing here and why, this is not a noob friendly guide. You need to have an understanding of basic concepts of linux and know your way around the terminal.
+1. AMD CPU (x86-64)
+2. AMD GPU (7900 GRE)
+3. Asrock Motherboard with UEFI support.
+
+All the steps mentioned here should regardless work for you. If you have an INTEL CPU and/or a NVIDIA GPU, there are some minor differences, and I will point them out.
+
+
+#### <mark style='background-color:rgb(46, 152, 154)'> While I will try to explain what I'm doing here and why, this is not a noob friendly guide. You need to have an understanding of basic concepts of linux and know your way around the terminal. </mark>
+
 
 <br>
 A lot of the stuff I will talk about here, was hugely inspired by other people in the community and their work. Special Credits to:
@@ -34,15 +46,14 @@ A lot of the stuff I will talk about here, was hugely inspired by other people i
 2. [This guide based on fedora by Madhu@sysguides.](https://sysguides.com/install-fedora-with-snapshot-and-rollback-support)
 3. [And offcourse, the Arch Wiki.](https://wiki.archlinux.org/title/Main_page)
 
-> I will try and keep the sections as modular as possible, so if someone wants to, for example, skip setting up secure boot, they can still follow along. I will also be linking some articles and blogposts which I found extremely helpful to understand some of the concepts, which you should definitely read. 
-
-I am also by no means an expert, so I welcome any and all feedback on this. Lets arch.
+<br>
+Finally, I am also by no means an expert, so I welcome any and all feedback on this. Lets arch.
 
 ---
 ---
 
 # 2. Pre-Install
-> This is all the preparation you need to do before attempting the install.
+This is all the preparation you need to do before attempting the install.
 
 ### 1. Download the arch iso
 
@@ -55,44 +66,48 @@ Either use the BitTorrent download (needs a bit-torrent client installed on your
 gpg --keyserver-options auto-key-retrieve --verify archlinux-version-x86_64.iso.sig
 ```	
 
-Where gpg is GnuPG, which needs to be installed on your existing system, and archlinux-version-x86_64.iso.sig is the file you download from the same webpage as the iso. <br><br>
+Where gpg is GnuPG, which needs to be installed on an existing system, and archlinux-version-x86_64.iso.sig is the file you download from the same webpage as the iso. <br><br>
 
 ### 3. Create an Installation Medium
 
-Use a tool like rufus or balena etcher if you are on windows. On linux, you can use KDE ISO Image Wirte, or the Gnome Disk Utility for a good gui application to do this. Many more methods documented on the wiki [here](https://wiki.archlinux.org/title/USB_flash_installation_medium). <br>
+You need a flash drive that can be formmated to hold the installation image.
+
+On windows, use a tool like [Rufus](https://rufus.ie/en/) or [Balena Etcher](https://etcher.balena.io/) . On linux, [KDE ISO Image Write](https://apps.kde.org/isoimagewriter/) or [Gnome Disk Utility](https://gitlab.gnome.org/GNOME/gnome-disk-utility) are some  good Gui applications to do this. Many more methods documented on the wiki [here](https://wiki.archlinux.org/title/USB_flash_installation_medium). <br>
 	
 <details>
 <summary>Ventoy</summary>
 	You can alternatively use a software like ventoy, which prevents the need to burn a iso image to a drive, while also allowing you to have multiple iso images on the same disk. I personally use and love it. You can check out more about here on it's github page -> https://github.com/ventoy/Ventoy
 </details>
-<br><br>
+<br>
 
-### 4. Identify the Installation Target
+### 4. Identify the Installation Target (Optional but recommended)
 
-> If you're like me, and are installing linux on a separate drive, while already having windows on another drive, you need to check and make sure to correctly identify the drive. In linux, you can list all your drives using the command 'lsblk'. It labels SATA drives as sda1,sda2,... and nvme drives as nvme0n1, nvme1n1, etc. To avoid nuking your windows install, make a note of the correct drive. You can identify drives by their labels, existing partition layouts, storage capacity, etc.
+If you're like me, and are installing linux on a separate drive, while already having windows on another drive, you need to check and make sure to correctly identify the drive. In linux, you can list all your drives using the command 'lsblk'. It labels SATA drives as sda1,sda2,... and nvme drives as nvme0n1, nvme1n1, etc. To avoid nuking your windows install, make a note of the correct drive. You can identify drives by their labels, existing partition layouts, storage capacity, etc.
 
 ---
 ---
 
 # 3. Installation
 
-The Actual Install Process
+In this section, we will boot off the Arch USB disk created in the previous section and use it to install a minimal Arch Linux with all the base utilities.
 
 ### 1. Boot from the ISO
-> Plug in your usb with the Arch ISO, reboot to your PC's Motherboard settings (lookup how to for your model, generally it's by pressing the F2 or del key during boot), and in the boot priority, set the usb as the first to boot from. If secure boot is enabled,you have to disable it. 
+
+Plug in your usb with the Arch ISO, reboot to your PC's Motherboard settings (lookup how to for your model, generally it's by pressing the F2, F10 or Del key during boot), and in the boot priority, set the usb as the first to boot from. 
+
+**If secure boot is enabled, you will have to disable it.**
 	
->Further in this guide, I will show you how to generate custom secure boot keys. We will sign our arch install, and our arch iso with those keys. We can then have secure boot enabled.
+>Further in this guide, I will show you how to generate custom secure boot keys. We will sign our boot files with those keys, so that we can then re-enable secure boot.
+
+> As a bonus step, I will also show how you can sign the arch iso with the same secure boot keys, so that if you ever need to fix an issue on your system using the iso, you don't have to turn off secure boot.
 
 <br>
 
 ### 2. Internet Connectivity
 
-If you have a wired ethernet connection, just check for connectivity and proceed to step 3.<br>
+If you have a wired ethernet connection, just check for connectivity using the *ping* command and proceed to step 3.<br>
 
-If you're on wifi, run the below commands to connect to your network:
-
-> Here wlan0 is the name of my wifi device as output by device list, and \<wifi-name> will be substituted by the name of my Wifi Connection.
-
+If you're on wifi, run the below commands sequentially to connect to your network:
 
 ```
 iwctl
@@ -101,17 +116,22 @@ device wlan0 set-property Powered on
 station wlan0 scan
 station wlan0 get-networks
 station wlan0 connect <wifi-name>
-<Enter password>
+<Enter you wifi password>
 exit
 ```
 
+> Here wlan0 is the name of my wifi device as output by *device list*, and \<wifi-name> will be substituted by the name of my Wifi Connection.
+
+
 Check connectivity using:
 ```
-ping google.com
+ping -c 5 archlinux.org
 ```
+
 <br>
 
 ### 3. Check for disks
+Run  the below command to list all the disks available on your system:
 
 ```
 lsblk
@@ -128,29 +148,29 @@ echo $DISK
 <br>
 
 ### 4. Partition your disk
-In this step, we will create a new gpt table on the disk, and then create 2 partitions - a 1GB EFI partiton (also referred to as the ESP) and a Root partition with the remaining space.
+In this step, we will create a new GPT table on the disk, and then create 2 partitions - a 1GB EFI partiton (also referred to as the ESP) and a Root partition on the remaining space.
 <br>
 
-> I am seriously debating the size of the EFI partition. While 512Mb has been more than enough for me is the past, I have seen people recommend 1 GB. I have a 1tb SSD on which I will be installing arch, so it's not a big deal for me, and as I plan to use this system long term, I don't want to have to deal with rezising the partition later, so I am making it 1GB. If you want to have it as 512Mb, use +512M instead of +1G in the command below:
+> I am seriously debating the size of the EFI partition. While 512Mb has been more than enough for me is the past, I have seen people recommend 1 GB. I have a 1 Tb SSD on which I will be installing arch, so it's not a big deal for me, and as I plan to use this system long term, I don't want to have to deal with resizing the partition later, so I am making it 1 GB. If you want to have it as 512Mb, use +512M instead of +1G in the command below:
 
 ````
-a. fdisk $DISK
-b. g
-c. n
-d. default
-e. default
-f. +1G
-g. n
-h. default
-i. default
-j. default
-k. t
-l. 1
-m. 1
-n. t
-o. 2
-p. 23
-q. w
+fdisk $DISK
+g
+n
+default
+default
++1G
+n
+default
+default
+default
+t
+1
+1
+t
+2
+23
+w
 ````
 
 For the first partition, we set the parition type as EFI, and for the second one it was set as Linux Root (x86_64) instead of the default (Linux Filesystem).<br>
@@ -198,7 +218,8 @@ In the first command we formatted our disk with luks2, it will autogenerate the 
 In the second command, we open our encrypted drive, and give it the name of 'root'. From here on, our root partition isn't /dev/sda2 or /dev/nvme1n1p2, but rather it's /dev/mapper/root
 	
 <br>
-The 'allow discards' enables [Trim](https://wiki.archlinux.org/title/Solid_state_drive#TRIM) support for a SSD [Read More](https://wiki.archlinux.org/title/Dm-crypt/Specialties#Discard/TRIM_support_for_solid_state_drives_(SSD)).
+
+The 'allow discards' enables [TRIM](https://wiki.archlinux.org/title/Solid_state_drive#TRIM)  support for a SSD [Read More](https://wiki.archlinux.org/title/Dm-crypt/Specialties#Discard/TRIM_support_for_solid_state_drives_(SSD)).
 	
 The --perf-no_read_workqueue and --perf-no_write_workqueue increases performance for SSD's [Read More](https://wiki.archlinux.org/title/Dm-crypt/Specialties#Disable_workqueue_for_increased_solid_state_drive_(SSD)_performance)
 
@@ -817,6 +838,7 @@ paru -S btrfs-assistant
 ### 9. Wlogout
 ### 10. Pywal
 ### 11. kitty
+	[SSH Issue](https://wiki.archlinux.org/title/Kitty#Terminal_issues_with_SSH)
 ### Plymouth
 
 ---
@@ -827,12 +849,14 @@ paru -S btrfs-assistant
 1. Gaming
    1. Steam + Gamescope
    2. Heroic Games Launcher
-2. AppArmor
-3. [Power Management](https://wiki.archlinux.org/title/Power_management#)
-4. VS Code
-5. Clipboard manager
-6. [CPU Frequency Scaling](https://wiki.archlinux.org/title/CPU_frequency_scaling)
-7. [fwupd](https://github.com/fwupd/fwupd)
-8. Enable https://wiki.archlinux.org/title/Pkgstats to help the community
-9. Extra kernels
-10. Sign an Arch iso with your keys
+2. Virtualization
+3. AppArmor
+4. Stay upto date with arch news
+5. [Power Management](https://wiki.archlinux.org/title/Power_management#)
+6. VS Code
+7. Clipboard manager
+8. [CPU Frequency Scaling](https://wiki.archlinux.org/title/CPU_frequency_scaling)
+9. [fwupd](https://github.com/fwupd/fwupd)
+10. Enable https://wiki.archlinux.org/title/Pkgstats to help the community
+11. Extra kernels
+12. Sign an Arch iso with your keys
