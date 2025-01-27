@@ -76,7 +76,8 @@ On windows, use a tool like [Rufus](https://rufus.ie/en/) or [Balena Etcher](htt
 	
 <details>
 <summary>Ventoy</summary>
-	You can alternatively use a software like ventoy, which prevents the need to burn a iso image to a drive, while also allowing you to have multiple iso images on the same disk. I personally use and love it. You can check out more about here on it's github page -> https://github.com/ventoy/Ventoy
+
+You can alternatively use a software like ventoy, which prevents the need to burn a iso image to a drive, while also allowing you to have multiple iso images on the same disk. I personally use and love it. You can check out more about here on it's [Github page](https://github.com/ventoy/Ventoy).
 </details>
 <br>
 
@@ -151,33 +152,40 @@ echo $DISK
 In this step, we will create a new GPT table on the disk, and then create 2 partitions - a 1GB EFI partiton (also referred to as the ESP) and a Root partition on the remaining space.
 <br>
 
-> I am seriously debating the size of the EFI partition. While 512Mb has been more than enough for me is the past, I have seen people recommend 1 GB. I have a 1 Tb SSD on which I will be installing arch, so it's not a big deal for me, and as I plan to use this system long term, I don't want to have to deal with resizing the partition later, so I am making it 1 GB. If you want to have it as 512Mb, use +512M instead of +1G in the command below:
+> I am seriously debating the size of the EFI partition. While 512Mb has been more than enough for me is the past, I have seen people recommend 1 GB. 
+I have a 1 Tb SSD on which I will be installing arch, so it's not a big deal for me, and as I plan to use this system long term, I don't want to have to deal with resizing the partition later, so I am making it 1 GB. 
+If you want to have it as 512Mb, use +512M instead of +1G in the command below:
+
+Type in the following commands in order:
 
 ````
-fdisk $DISK
-g
-n
-default
-default
-+1G
-n
-default
-default
-default
-t
-1
-1
-t
-2
-23
-w
+fdisk $DISK        ---> Starts the fdisk partition tool on the selected disk
+g				   ---> Command to create a new gpt disk label
+n				   ---> Command to create a new partition
+default            ---> Asks for partition number, press enter as default selection is 1, which is correct.
+default			   ---> Asks for first sector, press enter as default is start of the Disk Space.
++1G                ---> Asks for last sector, sets size of partition 1, this will make it 1 GB.
+n                  ---> Command to create a new partition
+default            ---> Asks for partition number, press enter as default selection is 2, which is correct.
+default            ---> Asks for first sector, press enter as default is start of the Disk Space after previous partition.
+default            ---> Asks for last sector, press enter as default is end of the Disk Space.
+t                  ---> Command to change type of partition
+1				   ---> Select Partition 1
+1                  ---> Set partition type as 1 (EFI System)
+t   			   ---> Command to change type of partition
+2				   ---> Select Partition 2
+23				   ---> Set partition type as 23 (Linux root x86-64)
+w                  ---> Command to save all the changes we have done till now
 ````
 
 For the first partition, we set the parition type as EFI, and for the second one it was set as Linux Root (x86_64) instead of the default (Linux Filesystem).<br>
+
 This setting of partition type, while technically not necessary, is essential, as this will associate a standard partition GUID with it.<br>
+
 This is then used by systemd (only if using systemd-boot) to recoginze our root partition to decrypt and mount it automatically without a crypttab or fstab file.
-<br>
-Read more about [Discoverable Partitions](https://www.freedesktop.org/software/systemd/man/latest/systemd-gpt-auto-generator.html). 
+
+
+[Read more about Discoverable Partitions](https://www.freedesktop.org/software/systemd/man/latest/systemd-gpt-auto-generator.html). 
 
 Verify your partition type GUID (separate from a normal partition GUID, output with blkid) with:
 
@@ -188,24 +196,27 @@ lsblk -p -o NAME,PARTTYPE
 Your Root Filesystem (/dev/sdx2 or /dev/nvmenxn1p2) should have a guid of 4f68bce3-e8cd-4db1-96e7-fbcaf984b709. <br>
 The EFI parition should have the guid of c12a7328-f81f-11d2-ba4b-00a0c93ec93b
 
-<br>
+
 Run lsblk to verify your partition sizes.
-<br><br>
+
 If your disk name was sda,sdb, you can skip this step. If it was a nvme drive like me, update the DISK variable as shown below. This is because partitons in nvme are named as nvme1n1p1, nvme1n1p2 while other are named as sda1,sda2,
 	
 ```
 DISK=/dev/nvme1n1p
 ```
 <br>
-<br>
+
 
 ### 5. Encryption
 Now we will encrypt the root partition with luks2.
-> When we use luks to encrypt our drive with a password or a key, what it does is create a header. This header is what actually encrypts and decrypts the drive. Our key actually encrypts only the header. This is different that plain encryption, where our password is used to encrypt the entire disk. This allows a greater flexibility when creating and managing passwords and keys. We can also have multiple passwords and keys created that unlock the header.
+> When we use luks to encrypt our drive with a password or a key, what it does is create a header. This header is what actually encrypts and decrypts the drive. 
+The password encrypts only the header. This is different that plain encryption, where the password is used to encrypt the entire disk. This allows a greater flexibility when creating and managing passwords and keys. We can also have multiple passwords and keys created that unlock the header.
 
-> One downside of this approach is that if our header ever gets corrupted, we lose the ability to unlock our entire drive. To mitigate this, we will also backup our drive header further in the guide.
+> One downside of this approach is that if our header ever gets corrupted, we lose the ability to unlock our entire drive. To account for this, we will also backup our drive header further in the guide, so that it can be restored if the need arises.
 	
 <br>
+
+Run the following commands to encrypt the Root Partition:
 
 ```
 cryptsetup -v luksFormat --type luks2 ${DISK}2
@@ -218,12 +229,15 @@ In the first command we formatted our disk with luks2, it will autogenerate the 
 In the second command, we open our encrypted drive, and give it the name of 'root'. From here on, our root partition isn't /dev/sda2 or /dev/nvme1n1p2, but rather it's /dev/mapper/root
 	
 <br>
+I also used some options while opening the encrypted drive. They do the following:
 
-The 'allow discards' enables [TRIM](https://wiki.archlinux.org/title/Solid_state_drive#TRIM)  support for a SSD [Read More](https://wiki.archlinux.org/title/Dm-crypt/Specialties#Discard/TRIM_support_for_solid_state_drives_(SSD)).
+<br>
+
+The *--allow-discards* enables [TRIM](https://wiki.archlinux.org/title/Solid_state_drive#TRIM)  support for a SSD [Read More](https://wiki.archlinux.org/title/Dm-crypt/Specialties#Discard/TRIM_support_for_solid_state_drives_(SSD)).
 	
-The --perf-no_read_workqueue and --perf-no_write_workqueue increases performance for SSD's [Read More](https://wiki.archlinux.org/title/Dm-crypt/Specialties#Disable_workqueue_for_increased_solid_state_drive_(SSD)_performance)
+The *--perf-no_read_workqueue* and *--perf-no_write_workqueue* increases performance for SSD's [Read More](https://wiki.archlinux.org/title/Dm-crypt/Specialties#Disable_workqueue_for_increased_solid_state_drive_(SSD)_performance)
 
-The 'persistent' option writes these options to the header, so they are always used by default in the future.
+The *--persistent* option saves these options to the header, so they are always used by default in the future.
 
 <br>
 You can check the flags that your drive is opened with using:
@@ -233,14 +247,15 @@ You can check the flags that your drive is opened with using:
 ```
 cryptsetup luksDump /dev/sdaX | grep Flags
 ```
-> We will be relying on systemd to automatically recognize and decrypt our root partition. If you decide to use grub, you have to so some more setup.
+> I will be relying on systemd-boot to automatically recognize and decrypt the root partition. If you decide to use grub, you have to so some more setup in the crypttab file.
 
 <br>
 
 
 ### 6. Format your Partitions
 
-Now we will format our efi partition as Fat32 and the root partition as btrfs.
+Now I will format the efi partition as a Fat32 and the root partition as BTRFS filesystem.
+
 ```
 mkfs.vfat -F32 -n ESP ${DISK}1
 mkfs.btrfs -L root /dev/mapper/root
@@ -254,27 +269,31 @@ blkid -o list
 <br>
 
 ### 6. Btrfs Subvolumes
-   > This section is a lot more subjective to the type of installation you prefer. Basically, since we are on a btrfs filesystem, and will be using the rollback functionality on the root subvolume, you can choose which folders on your root won't be rolled back. They can have their own rollback logic created. To do this, they need to be mount as separate subvolumes. Choosing which folders should be subvolumes has no definitive answer.
+> This section is a lot more subjective to the type of installation you prefer. Basically, since we are on a btrfs filesystem, and will be using the rollback functionality on the root subvolume, you can choose which folders on your root won't be rolled back. 
+They can have their own rollback logic created. To do this, they need to be mounted as separate subvolumes. Choosing which folders should be subvolumes has no definitive answer.
 	
 	
 The archinstall script creates the following subvolumes - /, /home, /var/log, /var/cache/pacman/pkg and the '@' naming scheme.
 
-OpenSuse Recommends the following [Subvolumes]](https://en.opensuse.org/SDB:BTRFS) - /home, /opt, /root, /srv, /tmp, /usr/local, /var.
+[OpenSuse Recommends the following Subvolumes](https://en.opensuse.org/SDB:BTRFS) - /home, /opt, /root, /srv, /tmp, /usr/local, /var.
 
 <br>
 
-This is the subvolume layout and I personally use, and which has worked well for me.
+This is the subvolume layout and I personally use, and which has worked well for me:
 
-> @ (/) -> The root folder, which is also a separate subvolume below the btrfsroot volume, and which we will rollback in case of any issues.<br><br>
-@home (/home) -> Home Folder where your Data/Games/Configurations will reside. <br><br>
-@mozilla (/home/\$USER/.mozilla) -> The directory where your firefox data is stored. If you ever rollback your home directory, this will prevent any potential loss of browsing data. <br><br>
-@ssh (/home/\$USER/.ssh) -> Same as above, to protect any ssh keys/configs you have. <br><br>
-@opt (/opt)  -> This is where third party applications are installed. <br><br>
-@var (/var) -> Where all temporary files/logs/cache is stored.  <br><br>
-@snapshots (/.snapshots) -> This subvolume will house snapshots of our @ subvolume (Managed via Snapper). <br><br>
-@home-snapshots (/home/.snapshots) -> This subvolume will house snapshots of our @home subvolume (Managed via Snapper). <br><br>
-	
-<br>
+| Subvolume Name    | Mount Point | Purpose |
+| ----------------- | ----------- | ------- |
+| @ | / | The root folder, which is also a separate subvolume below the btrfsroot volume, and which we will rollback in case of any issues. |
+| @home | /home |  Home Folder where all your Data/Games/Configurations will reside. |
+| @mozilla | /home/$USER/.mozilla | The directory where your firefox data is stored. If you ever rollback your home directory, this will prevent any potential loss of browsing data. |
+| @ssh | /home/$USER/.ssh | Same as above, to protect any ssh keys/configs you have. |
+| @opt | /opt |  This is where third party applications are installed.. |
+| @var | /var |  Where all temporary files/logs/cache is stored. |
+| @snapshots | /.snapshots |  This subvolume will store snapshots of our @ subvolume (Managed via Snapper). |
+| @home-snapshots | /home/.snapshots | This subvolume will store snapshots of our @home subvolume (Managed via Snapper). |
+
+
+Run the below commands to create all the subvolumes:
 
 ```
 mount /dev/mapper/root /mnt
@@ -287,21 +306,24 @@ The final commands lists all the subvolumes with their ID.
 Get subvol id of @ and set it as default for the root (eg. 256)
 
 ```
-btrfs subvolume set-default $ID /mnt
+btrfs subvolume set-default 256 /mnt
 ```
 
->I am making the whole of var into one subvolume. This is not recommended by arch, as pacman stores it's cache in the /var/cache/pacman directory. But I am going to configure pacman cache to be in the tmp directory, as I don't need it, you can read the rationale behind this [here](https://www.reddit.com/r/archlinux/comments/1hgbl1k/what_is_varcachepackagepkg_and_why_is_it_so_large/)
+>I am making the whole of var into one subvolume. This is not recommended by arch, as pacman stores it's cache in the /var/cache/pacman directory. 
+But I am going to configure pacman cache to be in the tmp directory, you can read the rationale behind this [here](https://www.reddit.com/r/archlinux/comments/1hgbl1k/what_is_varcachepackagepkg_and_why_is_it_so_large/). 
+But essentially, I am not saving any pacman cache.
 
-Optional, if you use Thunderbird, Chrome, or Gnupg you can also create the below subvolumes to preserve their data similar to @mozilla above.
-```
-@thunderbird - /home/$USER/.thunderbird
-@chrome - /home/$USER/.config/google-chrome
-@gnupg - /home/$USER/.gnupg
-```
+Optionally, if you use Thunderbird, Chrome, or Gnupg you can also create the below subvolumes to preserve their data similar to @mozilla above.
+| Subvolume Name    | Mount Point |
+| ----------------- | ----------- | 
+| @thunderbird | /home/$USER/.thunderbird |
+| @chrome | /home/$USER/.config/google-chrome |
+| @gnupg | /home/$USER/.gnupg |
 
-> More btrfs subvolumes can also be created in the future if you need it. 
+
+
+>Btrfs subvolumes can also be created in the future if you need it. 
 		
-<br>
 <br>
 
 ### 7. Mount Options
@@ -309,25 +331,31 @@ Optional, if you use Thunderbird, Chrome, or Gnupg you can also create the below
 Mount all the subvolumes you created using the same mount options as the root.
 
 ```
-mount -o defaults,noatime,space_cache=v2,ssd,compress-force=zstd:1,commit=120,subvol=@home /dev/mapper/root /mnt/home
+umount /mnt
 mount -o defaults,noatime,space_cache=v2,ssd,compress-force=zstd:1,commit=120,subvol=@ /dev/mapper/root /mnt
+mount -o subvol=@home /dev/mapper/root /mnt/home
 mount -o subvol=@home /dev/mapper/root /mnt/home
 mount -o subvol=@opt /dev/mapper/root /mnt/opt
 mount -o subvol=@var /dev/mapper/root /mnt/var
 ```
 
-> We will mount @mozilla, @ssh, @snapshots and @home-snapshots,  later on.
+We will mount the @mozilla, @ssh, @snapshots and @home-snapshots subvolumes,  later on.
 
-> Once a subvolume is mounted with some options, all other subvoumes follow the same options. This is fine mostly as I need the same options everywhere, except in the @var directory, where I want to have the nodatacow mount option. So instead I will set the attribute +C on the var directory, which accomplishes the same thing.
+> Once a subvolume is mounted with a set of options, all other subvoumes follow the same options. This is fine mostly as I need the same options everywhere, except in the @var directory, where I want to have the [Nodatacow](https://www.reddit.com/r/btrfs/comments/n6slx3/what_is_the_advantage_of_nodatacowdisabling_cow/) mount option. 
+So instead I will set the attribute +C on the var directory, which accomplishes the same thing.
+
+Run this command to disbale CoW in the @var subvolume
+
 ```
-chattr +C /var
+chattr +C /mnt/var
 ```
-  
->Nodatacow and compress/compress-force can't be used together.
 
-Read more about various [BTRFS mount Options](https://btrfs.readthedocs.io/en/stable/Administration.html#mount-options)
+[Read more about various BTRFS mount Options](https://btrfs.readthedocs.io/en/stable/Administration.html#mount-options)
+<br>
+<br>
 
-Also mount the efi partition
+Also mount the efi partition using:
+
 ```
 mkdir -p /mnt/efi
 mount -o defaults,fmask=0077,dmask=0077 /dev/{DISK}1 /mnt/efi
@@ -336,162 +364,226 @@ mount -o defaults,fmask=0077,dmask=0077 /dev/{DISK}1 /mnt/efi
 
 ### 8. Update Mirrors and Pacstrap
 
-Before we download and install the necessary packages, let us update our mirrors, for the best download speed, by running:
+Before we download and install the necessary packages, let us update our mirrors, for the best download speed, by running the refelctor command. Replace $COUNTRY with your country name:
 
 ```
 reflector --country $COUNTRY --age 24 -l 10 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
 ```
 
-Now, we install the base required packages for a arch install using the pacstrap command on /mnt where the system root is mounted. 
+Now, we install the base required packages for an Arch Linux install using the pacstrap command on /mnt where the system root is mounted. Press enter after running these commands:
 	
 ```
 pacman -Sy archlinux-keyring
-pacstrap -K /mnt base base-devel linux linux-firmware amd-ucode cryptsetup btrfs-progs dosfstools posix util-linux git networkmanager sudo openssh vim xorg-xwayland reflector
+pacstrap -K /mnt base base-devel linux linux-firmware amd-ucode cryptsetup btrfs-progs dosfstools posix util-linux git networkmanager sudo openssh vim reflector
 ```
+
+#### <mark style='background-color:rgb(46, 152, 154)'> If you have an intel cpu, replace amd-ucode with intel-ucode above. </mark>
+
 
 ### 9. Chroot into the install and do basic setup
 
->Chroot makes it so that the system behaves as if you are the root user of the new install. This is done so as to not need to reference /mnt as the root.
+>Chroot or Change-Root makes it so that the system behaves as if you are the root user of the new install. This way you can setup some basic things as the Root user without needing to reference /mnt as the root.
 
 ```
 arch-chroot /mnt
 ```
 
+<br>
+
 1. Set the system timezone, Update the system time and Setup a NTP server for Clock Accuracy using the below commands (replace /Asia/Kolkata with your respective timezone)
 		
-```
-ln -sf /usr/share/zoneinfo/Asia/Kolkata /etc/localtime
-timedatectl set-ntp true
-systemctl enable systemd-timesyncd
-```
+	```
+	ln -sf /usr/share/zoneinfo/Asia/Kolkata /etc/localtime
+	timedatectl set-ntp true
+	systemctl enable systemd-timesyncd
+	```
 
-[Read this if you are dual-booting windows](https://wiki.archlinux.org/title/System_time#UTC_in_Microsoft_Windows)
+	[Read this if you are dual-booting windows](https://wiki.archlinux.org/title/System_time#UTC_in_Microsoft_Windows)
 
 2. Locale
 
+	```
+	vim /etc/locale.gen
+	```
 
-vi /etc/locale.gen
+	Uncomment your desired locale by removing the # at the start. Also uncomment en_US.UTF-8 ([Why?](https://wiki.archlinux.org/title/Steam#Installation))
+	
+	Save the file and run:
 
-uncomment your desired locale by removing the # at the start.if it's not en_US.UTF-8, also uncomment it.([Why?](https://wiki.archlinux.org/title/Steam#Installation))
-Save the file and Run
-```
-locale-gen
-```
-Then run the following command and input desired locale and hostname:
+	```
+	locale-gen
+	```
 
-```
-systemd-firstboot --prompt
-```
+	Then run the following command and provide appropriate input as asked (go with defaults if in doubt):
+
+	```
+	systemd-firstboot --prompt
+	```
 
 3. Pacman
-Improve pacman defaults:
-		
-```
-vim /etc/pacman.conf
-```
-Under misc option, uncomment the following lines:
-Color
-ParallelDownloads = 5
 
-And add the line:
-ILoveCandy
+	Improve pacman defaults:
+			
+	```
+	vim /etc/pacman.conf
+	```
+	Under misc option, uncomment (blue) and add(purple) the following lines:
 
+	---
+	#### <mark style='background-color:rgb(46, 152, 154)'> Color </mark>
+	#### <mark style='background-color:rgb(46, 152, 154)'> ParallelDownloads = 5 </mark>
+	#### <mark style='background-color:rgb(82, 80, 240)'> ILoveCandy </mark>
+	---
 
-Change the pacman cache directory folder location
+	Save and Exit.
 
-```
-vim /etc/pacman.conf
-```
+	<br>
+	Changing the Pacman cache directory location:
 
-Make the line starting with #CacheDir look like this and save:
+	```
+	vim /etc/pacman.conf
+	```
 
-CacheDir     = /tmp/cache-pacman/pkg/
+	Remove the '#' from the line starting with #CacheDir save:
+
+	---
+	#### <mark style='background-color:rgb(46, 152, 154)'> CacheDir     = /tmp/cache-pacman/pkg/ </mark>
+	
+	---
 
 	
 ### 10. User Management
 1. Set Root Password
-```
-passwd
-```
+	```
+	passwd
+	```
 
-2. Create your user and set password.
+2. Create your user and set a password.
 
-```
-useradd -G wheel -m $USER
-passwd $USER
-```
+	```
+	useradd -G wheel -m $USER
+	passwd $USER
+	```
 
 3. Allow your user to run sudo commands with a password
 	
-```
-visudo
-```
+	```
+	visudo
+	```
 
-Uncomment by removing the '#' of the following line and save:
+	Uncomment by removing the '#' of the **FIRST** line starting wiht '# %wheel'. Use
 
-\# %wheel ALL=(ALL:ALL) ALL
+	---
+	#### <mark style='background-color:rgb(46, 152, 154)'> %wheel ALL=(ALL:ALL) ALL </mark>
 
-4. Mount 2 of the remaining 4 subvolumes
-```
-mkdir /home/$USER/{.mozilla,.ssh}
-mount -o subvol=@mozilla /dev/mapper/root /mnt/home/$USER/.mozilla
-mount -o subvol=@ssh /dev/mapper/root /mnt/home/$USER/.ssh
-```
+	---
+
+
+4. Mount 2 of the remaining 4 subvolumes:
+	```
+	mkdir /home/$USER/{.mozilla,.ssh}
+	mount -o subvol=@mozilla /dev/mapper/root /mnt/home/$USER/.mozilla
+	mount -o subvol=@ssh /dev/mapper/root /mnt/home/$USER/.ssh
+	```
+<br>
 
 ### 11. Generate fstab
 
->fstab is a file referenced by the system during boot to mount your drives/partitions to the correct location. Since we have already mounted our drives, we will use the **genfstab** utility to output the fstab file with the options we chose earlier, and save it, so that in the future these options are used by default.
+> Fstab is a file referenced by the system during boot to mount your drives/partitions to the correct location. Since we have already mounted our drives, we will use the **genfstab** utility to output the fstab file with the options we chose earlier, and save it, so that in the future these options are used by default.
 
 ```
-mkdir /mnt/etc
-touch /mnt/etc/fstab
-genfstab -U /mnt >> /mnt/etc/fstab
+mkdir /etc
+touch /etc/fstab
+genfstab -U / >> /mnt/etc/fstab
 ```
 
 <details>
-	<summary>Why am I using fstab when discoverable partitions exist?</summary>
-	[Discoverable partitons](https://www.freedesktop.org/wiki/Specifications/DiscoverablePartitionsSpec/) is a cool feature which can automount your drives, and can fully be used in this install, as I will be using systemd-boot as my bootloader.
-	However, I will still manually define my mount points in fstab. This is because:
-		a. I don't see an option of defining my mount options, and I don't want them to be the system defaults
-		b. I will still have to mount my btrfs subvolumes manually, so why not do it all myself?
-		c. I don't like the abstraction, I prefer to setup my system myself.
+<summary>Why am I using fstab when discoverable partitions exist?</summary>
+
+Discoverable partitons is a cool feature which can automount your drives, and can fully be used in this install, as I will be using systemd-boot as my bootloader.
+However, I will still manually define my mount points in fstab. This is because:
+	a. I don't see an option of defining my mount options, and I don't want them to be the system defaults
+	b. I will still have to mount my btrfs subvolumes manually, so why not do it all myself?
+	c. I don't like the abstraction, I prefer to setup my system myself.
 </details>
-	
+
+<br>	
 
 ### 12. Generate Unified Kernel Images
+[Unified Kernel Images](https://wiki.archlinux.org/title/Unified_kernel_image) is a concept of generating a single efi file to boot from. This helps in maintainence and signing for secure boot.
 
+While this may sound difficult, it's been made very easy by various tools. I will use the [mkinitcpio](https://wiki.archlinux.org/title/Mkinitcpio) in this instance. By just changing a few Configuration options, it will generate the UKI's automatically now and in the future.
+
+Run the below commands:
 ```
 echo "quiet rw" >/etc/kernel/cmdline
 mkdir -p /efi/EFI/Linux
 vim /etc/mkinitcpio.conf
 ```
 	
-Edit the hooks like in mkinitcpio.conf to look like this:
-HOOKS=(base systemd autodetect modconf kms keyboard sd-vconsole sd-encrypt block filesystems fsck)
+Edit the line starting with *HOOKS* in mkinitcpio.conf to look like this:
+
+---
+#### <mark style='background-color:rgb(46, 152, 154)'> HOOKS=(base systemd autodetect modconf kms keyboard sd-vconsole sd-encrypt block filesystems fsck) </mark>
+---
+
+Now we need to edit the linux kernel preset file. (If you have installed additional kernels, you need to update their preset files as well.)
 
 ```
 vim /etc/mkinitcpio.d/linux.preset
 ```
+Comment the line starting with default_image and fallback_image and uncomment the lines starting with ALL_config, default_uki, default_options and fallback_uki.
+Make the file look like this:
 
-Uncomment lines for uki, and comment for image
+---
 
-Run below command to generate images
+All_config="/etc/mkinitcpio.conf"
+
+ALL_kver="/boot/vmlinuz-linux"
+
+PRESETS=('default', 'fallback')
+
+#default_config="/etc/mkinitcpio.conf"
+
+#default_image="/boot/initramfs-linux.img"
+
+default_uki="/efi/EFI/Linux/arch-linux.efi"
+
+default_options="--splash /usr/share/systemd/bootctl/splash-arch.bmp"
+
+#fallback_config="/etc/mkinitcpio.conf"
+
+fallback_image="/boot/initramfs-linux-fallback.img"
+
+fallback_uki="/efi/EFI/Linux/arch-linux-fallback.efi"
+
+fallback_options="-S autodetect"
+
+
+---
+
+
+Run below command to generate the unified kernel images:
 ```
 mkinitcpio -P
 ```
 
 ### 13. Enable services
 
-Network
+Network Services:
 
 ```
 systemctl enable systemd-resolved NetworkManager
 systemctl mask systemd-networkd
-[Reflector](https://ostechnix.com/retrieve-latest-mirror-list-using-reflector-arch-linux/)
-sshd
+systemctl enable reflector
+systemctl enable sshd
 ```
+[Read more about Reflector config](https://ostechnix.com/retrieve-latest-mirror-list-using-reflector-arch-linux/).
+
+<br>
 
 ### 14. Bootloader Installation
+In this step, I will install the systemd-boot bootloader on the /efi partition. Then I will reboot to the Motherboard settings:
 
 ```
 bootctl install --esp-path=/efi
@@ -500,10 +592,13 @@ exit
 systemctl reboot --firmware-setup
 ```
 
-Now in the Firmware setup menu, select the entry for Arch/The Disk as the Main Entry.
-You will be asked to enter the disk encryption password, post which you can login and use the installation.
-COngrats, you have a minimal arch linux system installed.
+In the Firmware setup menu, select the entry for Arch/The Disk as the First Priority Entry.
+You will be asked to enter the disk encryption password, post which you can login and use the your new Arch System.
 
+
+**Congrats, we have a minimal arch linux system installed.**
+
+<br>
 
 ---
 ---
@@ -586,7 +681,7 @@ COngrats, you have a minimal arch linux system installed.
 ### 2. Install Hyprland and other helpful gui applications
 	
 ```
-sudo pacman -S hyprland dolphin kitty wofi waybar hyprpolkitagent grim kitty qt5-wayland qt6-wayland slurp xdg-desktop-portal-hyprland xdg-utils vlc
+sudo pacman -S hyprland dolphin kitty wofi waybar hyprpolkitagent grim kitty qt5-wayland qt6-wayland slurp xdg-desktop-portal-hyprland xdg-utils xorg-xwayland vlc
 paru -S wlogout
 ```
 
