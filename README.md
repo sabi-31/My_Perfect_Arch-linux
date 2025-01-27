@@ -494,7 +494,7 @@ arch-chroot /mnt
 ```
 mkdir /etc
 touch /etc/fstab
-genfstab -U / >> /mnt/etc/fstab
+genfstab -U / >> /etc/fstab
 ```
 
 <details>
