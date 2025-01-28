@@ -210,7 +210,7 @@ DISK=/dev/nvme1n1p
 ### 5. Encryption
 Now we will encrypt the root partition with luks2.
 > When we use luks to encrypt our drive with a password or a key, what it does is create a header. This header is what actually encrypts and decrypts the drive. 
-The password encrypts only the header. This is different that plain encryption, where the password is used to encrypt the entire disk. This allows a greater flexibility when creating and managing passwords and keys. We can also have multiple passwords and keys created that unlock the header.
+The password is saved in a 'keyslot', which unlocks only the header. This is different that plain encryption, where the password is used to encrypt the entire disk. This allows a greater flexibility when creating and managing passwords and keys. We can also have multiple 'keyslots' created that can unlock the header.
 
 > One downside of this approach is that if our header ever gets corrupted, we lose the ability to unlock our entire drive. To account for this, we will also backup our drive header further in the guide, so that it can be restored if the need arises.
 	
@@ -592,7 +592,7 @@ exit
 systemctl reboot --firmware-setup
 ```
 
-In the Firmware setup menu, select the entry for Arch/The Disk as the First Priority Entry.
+In the Firmware setup menu, select the entry for Arch/The Disk as the First Priority Entry and Save the settings.
 You will be asked to enter the disk encryption password, post which you can login and use the your new Arch System.
 
 
@@ -606,7 +606,8 @@ You will be asked to enter the disk encryption password, post which you can logi
 # 4. Post-Install
 > While we have a working system now, we are missing a lot of utilities which make it actually usuable. In this section, I will walk through installing and configuring them.
 
-### 1. Update Pacman and install essential packages:
+Boot into your system, and login as your user.
+### 1. Update Pacman and install some essential packages:
 1. Drivers and Codecs
 		
 	Generic:
@@ -620,13 +621,13 @@ You will be asked to enter the disk encryption password, post which you can logi
 	paru -S amdgpu_top
 	```
 
-	>The amdgpu-top package is a tui+gui application to monitor your gpu usage. It needs paru/yay installed, which I do below.
+	>The amdgpu-top package is a tui+gui application to monitor your gpu usage. It needs paru/yay installed, which I do in step 2.
 
-	Nvidia GPU:
-	>I don't have an Nvidia GPU, so you have to test this part yourself, refer this [link](https://github.com/korvahannu/arch-nvidia-drivers-installation-guide).
+	#### <mark style='background-color:rgb(46, 152, 154)'> Nvidia GPU:</mark>
+	>I don't have an Nvidia GPU, so you have to test this part yourself, refer to this [link](https://github.com/korvahannu/arch-nvidia-drivers-installation-guide).
 	
 2. AUR Helper
-	>I will install [paru](https://github.com/Morganamilo/paru) to help me download and install AUR packages.
+	>I will install [paru](https://github.com/Morganamilo/paru) to help me download and install AUR packages. See also: [Yay](https://github.com/Jguer/yay)
 				
 	```
 	sudo pacman -S --needed base-devel
@@ -635,6 +636,8 @@ You will be asked to enter the disk encryption password, post which you can logi
 	makepkg -si
 	```
 	
+	>After this step, you will be able to use the command *paru -S \<package-name>* to install a package from the[AUR](https://aur.archlinux.org/). Be very careful installing packages from here.
+
 3. Shell and Fonts
 
 	```
@@ -653,11 +656,11 @@ You will be asked to enter the disk encryption password, post which you can logi
 5. Utilities
 			
 	```
-	sudo pacman -S unzip man-db man-pages wget htop 
+	sudo pacman -S unzip man-db man-pages wget htop tpm2-tss
 	```
 
 
-6. Flatpak
+6. Flatpaks
 	
 	```
 	sudo pacman -S flatpak
@@ -665,53 +668,71 @@ You will be asked to enter the disk encryption password, post which you can logi
 
 	You can search for applications you need on [Flathub](https://flathub.org/).
 
+   
 7. [Optional Repositories](https://wiki.archlinux.org/title/Official_repositories#)
-    I will be enabling the Multilib repo(because I need Steam).
+
+    I will be enabling the Multilib repo (because Steam isn't available on the default repo as it's a 32 bit application).
 		
 	```
 	vim /etc/pacman.conf
 	```
 		
 	Uncomment the below lines by removing the '#'
+	
+	---
 	[multilib]
-	Include = /etc/pacman.d/mirrorlist
 
+	Include = /etc/pacman.d/mirrorlist
+	
+	---
+
+	Then run:
+
+	```
+	sudo pacman -Sy
+	```
 
 
 ### 2. Install Hyprland and other helpful gui applications
 	
 ```
-sudo pacman -S hyprland dolphin kitty wofi waybar hyprpolkitagent grim kitty qt5-wayland qt6-wayland slurp xdg-desktop-portal-hyprland xdg-utils xorg-xwayland vlc
+sudo pacman -S hyprland firefox dolphin kitty wofi waybar hyprpolkitagent grim kitty qt5-wayland qt6-wayland slurp xdg-desktop-portal-hyprland xdg-utils xorg-xwayland vlc
+
 paru -S wlogout
 ```
 
 Set this line in your hyprland config:
+
+---
+
 exec-once = systemctl --user start hyprpolkitagent
+
+---
 
 https://wiki.archlinux.org/title/XDG_MIME_Applications
 
 
 ### 3. Install rEFInd
-
+Refind is a boot manager. Simply put, when starting your PC, it will allow you to choose between Windows and Linux. It can also be themed to make the boot process look pretty.
 ```
 sudo pacman -S refind
-refind-install
+sudo refind-install
 ```
 
 <details>
-	<summary>Why do I need both rEFInd and systemd-boot? </summary>
-	- rEFInd Btrfs
-	- Customizability
-	- Separation of both bootloaders
-	- Management is easier of systemd-boot
+<summary>Why do I need both rEFInd and systemd-boot? </summary>
+
+- rEFInd supports Btrfs Snapshot Booting
+- It is customizable
+- I want the main linux bootloader to do just that, and not have other fancy features for realiability.
 </details>
 
-Refind BTRFS
+[Refind BTRFS](https://github.com/Venom1991/refind-btrfs) will be configured later
 
 
 
 ### 4. Setup Secure Boot
->We will generate our own secure boot keys, enroll them in our Motherboard firmware, and sign our kernel modules and other efi binaries with them. There's an amazing tool known as [sbctl](https://github.com/Foxboron/sbctl) which does most of the heavy lifting for us.
+We will generate our own secure boot keys, enroll them in our Motherboard firmware, and sign our kernel modules and other efi binaries with them. There's an amazing tool known as [sbctl](https://github.com/Foxboron/sbctl) which does most of the heavy lifting for us.
 
 ```
 sudo pacman -S sbctl
@@ -721,13 +742,14 @@ Once sbctl is downloaded, you need to make sure your motherboard is in setup mod
 
 >Many motherboards have the ability to restore the keys that you removed (I can confirm this for Asrock). Also if you ever update the firmware of the motherboard, you might have to enroll your own keys again.
 
-Check if motherboard is in Setup mode:
+Check if motherboard is in Setup mode from the output of:
 
 ```
 sbctl status
 ```
 
-Post confirmation, we will generate our keys, enroll them into the motherboard(along with Microsoft keys for windows comapatibility).
+Now we will generate our keys, enroll them into the motherboard(along with Microsoft keys for windows comapatibility).
+
 These keys are stored in the '/var/lib/sbctl/keys' directory. It's not a bad idea to back them up.
 
 ```
@@ -736,8 +758,13 @@ sudo sbctl enroll-keys -m
 sudo sbctl status
 ```
 
-Now we will sign our kernel, bootloader and boot manager(refind) files with our keys. We will also instruct sbctl to sign any future kernels images automatically.
-The 'sbctl verify' command lists all files that need to be signed and checks whether they are signed or not. We will then use 'sbctl sign -s $filename' to sign now and in the future with any updates.
+After confirming the enrollment of keys, we will sign our kernel, bootloader and boot manager(refind) files with our keys. 
+
+If any of these images get updated, we will also instruct sbctl to sign them again automatically.
+
+The *sbctl verify* command lists all files that need to be signed and checks whether they are signed or not. 
+
+We will then use *sbctl sign -s \<filename>* to sign them.
 
 ```
 sudo sbctl verify
@@ -749,45 +776,94 @@ sudo sbctl sign -s /efi/EFI/refind/drivers_x64/btrfs_x64.efi
 sudo sbctl sign -s /efi/EFI/refind/refind_x64.efi
 ```
 
+You might have to sign more files, if you have installed additional kernels. Use the *sbctl verify* command to check if any more files need signing.
 Now we can re-enable secure boot, and it should work fine.
 
-[Secure Boot 1](https://0pointer.net/blog/unlocking-luks2-volumes-with-tpm2-fido2-pkcs11-security-hardware-on-systemd-248.html)
 
 
+### 5. Improve Encryption Setup 
+[Reference Guide](https://0pointer.net/blog/unlocking-luks2-volumes-with-tpm2-fido2-pkcs11-security-hardware-on-systemd-248.html)
 
-### 5. Improve Encryption Setup [Read More](https://0pointer.net/blog/unlocking-luks2-volumes-with-tpm2-fido2-pkcs11-security-hardware-on-systemd-248.html)
 1. Backup LUKS Headers
-	I have already explained previously why you might want to backup you luks header, which stores data about and controls your drive decryption.
+
+	I have already explained previously why you might want to backup your encrypted drive's Luks header, which stores data about and controls your drive decryption.
 	To backup the header, run:
 
 	```
 	sudo cryptsetup luksHeaderBackup /dev/gpt-auto-root-luks --header-backup-file luks-header-backup.img
 	```
 
-	This will generate a file 'luks-header-backup.img' in your current directory. Save this in another drive, in the cloud (depending on your threat model), or into a password manager like bitwarden. If your header ever gets corrupted, you can boot from another iso, and restore it using:
+	This will generate a file 'luks-header-backup.img' in your current directory. 
+	
+	Save this in another drive, in the cloud (depending on your threat model), or into a password manager like bitwarden. If your header ever gets corrupted, you can boot from another iso, and restore it using:
 
 	```
 	cryptsetup luksHeaderRestore /dev/device --header-backup-file /path-to/luks-header-backup.img
 	```
 
-2. Enroll and backup an extra key
-	While we normally use a passord to unlock the luks header, it can support multiple unlocking options, one of which is a key, auto-generate by the system with a key
+2. Manage Keyslots:
 
-3. Setup Auto Unlocking via a Yubikey
+	While we normally use a passord to unlock the luks header, it can support multiple unlocking options, one of which is a keyfile. 
 	
-4. Setup auto unlocking via TPM
-	Check if you have a tpm by running:
+	In this optional step, I will generate a keyfile with random data, and enroll it into the header. This can then be used to unlock the drive.
+
+	Generate a strong key into a file named my-encryption-key in your current folder:
 
 	```
-	ls /sys/class/tpm
+	openssl genrsa -out my-encryption-key 4096
+	```
+
+	Enroll this key into your root drive:
+	```
+	sudo cryptsetup luksAddKey /dev/gpt-auto-root-luks my-encryption-key
+	```
+
+	You can use this key to unlock the drive (assuming you are booted from an iso) using:
+	```
+	cryptsetup open --type luks /dev/sda2 root --key-file my-encryption-key
+	```
+
+	<br>
+
+	View all keyslots in your drive's luks header:
+	```
+	cryptsetup luksDump /dev/gpt-auto-root-luks
+	```
+
+	or
+	```
+	sudo systemd-cryptenroll /dev/gpt-auto-root-luks
+	```
+
+	The keyslots are numbered starting from 0, in the order that you added them.
+
+	You can delete an exsting keyslot using:
+	```
+	cryptsetup luksKillSlot /dev/gpt-auto-root-luks \<keyslot-number>
+	```
+
+	Be careful not to remove all the keys as this might render your drive unlockable. (You can recover from such an accident if you hvae the Luks Header Backed up)
+
+
+3. Setup auto unlocking via TPM
+
+	We can setup our encrypted drive to be unlocked automatically by saving a key on the TPM chip (present in most modern PC's) and enrolling it into the luks header with the help of [Systemd-cryptenroll](https://wiki.archlinux.org/title/Systemd-cryptenroll).
+
+	This key can also be bound the PCR's on the TPM (basically they do some verifications on your system beforr allowing the key to be used.)
+	
+	Check TPM support on your PC using:
+
+	```
+	systemd-analyze has-tpm2	
 	```
 
 	If you see an output like tpm0, them a tpm device exists
 		
 	Choose which PCR's to use. A pcr is a register on the TPM that can measure specific values, like is secure boot on or off, what is the firmware version,etc. You can see the full list [Here](https://wiki.archlinux.org/title/Trusted_Platform_Module#Accessing_PCR_registers)
-	I will use PCR 0,7
 
-	Enroll the TPM to the luks device with selected PCR's
+	I will use PCR 0,7. This makes it so that if I upgrade my Motherboard firmware or turn off secure boot, the TPM won't be able to unlock my drive. You can use more PCR's if you wish so.
+
+	The following command generates a key, and enrolls it both in the TPM and the Luks header, while also binding it to the PCR's 0 and 7:
 		
 	```
 	sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=0+7  /dev/gpt-auto-root-luks
