@@ -1,22 +1,9 @@
-Swap on ZRAM -> pacstrap zram-generator, 
-/etc/systemd/zram-generator.conf = 
-[zram0]
-zram-size= min(ram, 8192)
-
 https://wiki.archlinux.org/title/Power_management/Suspend_and_hibernate#Configure_the_initramfs
 https://wiki.archlinux.org/title/Swap#Swap_file
-https://wiki.archlinux.org/title/Dm-crypt/System_configuration#Kernel_parameters
 
 tmpfs -> In arch, and with systemd, tmpfs is automatically mounted (/tmp, different than /var/tmp)
 
 
-https://wiki.archlinux.org/title/Dm-crypt/System_configuration#Using_systemd-cryptsetup-generator
-
-/var/cache/pacman/pkg
-
-sudo paccache -ruk0(remove cache of uninstalled packages)
-sudo paccache -rv(Remove all cache except recent 3)
-sudo pacman -Qtd(Remove all packages installed as dependcies that are not longer needed)
 
 mlocate (install with pacman) and updatedb
 
@@ -24,6 +11,5 @@ mlocate (install with pacman) and updatedb
 sudo systemctl enable fstrim.timer
 https://wiki.archlinux.org/title/Solid_state_drive#TRIM
 https://gitlab.com/cryptsetup/cryptsetup/-/wikis/FrequentlyAskedQuestions#2-setup
-https://wiki.archlinux.org/title/Dm-crypt/Drive_preparation
 https://wiki.archlinux.org/title/Dm-crypt/Specialties#Discard/TRIM_support_for_solid_state_drives_(SSD)
 https://wiki.archlinux.org/title/Solid_state_drive#Periodic_TRIM

@@ -4,8 +4,7 @@ Table of Contents
 - [2. Pre-Install](#2-pre-install)
 - [3. Installation](#3-installation)
 - [4. Post-Install](#4-post-install)
-- [5. Ricing](#5-ricing)
-- [6. Extras](#6-extras)
+- [5. Extras](#5-extras)
 
 ---
 ---
@@ -724,7 +723,7 @@ sudo refind-install
 
 - rEFInd supports Btrfs Snapshot Booting
 - It is customizable
-- I want the main linux bootloader to do just that, and not have other fancy features for realiability.
+- I want the main linux bootloader to do just that, and not have other fancy features, improving realiability.
 </details>
 
 [Refind BTRFS](https://github.com/Venom1991/refind-btrfs) will be configured later
@@ -938,6 +937,7 @@ By now, you must be aware of the btrfs snapshot feature. There is a tool develop
 
 ```
 sudo pacman -S snapper snap-pac
+paru -S btrfs-assistant
 ```
 
 Run the below commands in order to:
@@ -948,6 +948,7 @@ Run the below commands in order to:
 
 	```
 	sudo snapper -c root create-config /
+	sudo snapper -c home create-config /home
 	```
 
 Auto Snapshots Timer and Cleanup
@@ -955,6 +956,7 @@ Auto Snapshots Timer and Cleanup
 ```
 vim /etc/updatedb.conf
 ```
+
 PRUNENAMES = ".snapshots "
 PRUNEPATHS = "/media"
 PRUNE_BIND_MOUNTS = no
@@ -962,60 +964,14 @@ PRUNE_BIND_MOUNTS = no
 Disable indexing of snapshots
 [wiki-preventing-slowdowns](https://wiki.archlinux.org/title/Snapper#Preventing_slowdowns)
 
-There is a gui application available for snapper that can be installed with:
-
-```
-paru -S btrfs-assistant
-```
 
 
-> At this point we have a system with a good base and security features while also offering style(kinda) and convinience. You can stop at this point and install anything else you need for your workflow, but we know you won't, which brings us to the next section.
+> At this point we have a system with a good base and security features while also offering style(kinda) and convinience. You can stop using the guide at this point and make most of the further decisions on your own as to what type of theming and workflow you prefer. I will document my own rice and dotfiles in another Repo. Meanwhile, there are more things that can be done with Arch linux, refer the next section for that.
 
 ---
 ---
 
-# 5. Ricing
-> The stuff everyone actually cares about
-### 1. Dark Mode
-	#####Dark mode
-	This is a quick and easy dark mode using the adwaita theme, [Read More](https://wiki.archlinux.org/title/Dark_mode_switching)
-	
-	```
-	sudo pacman -S gnome-themes-extra
-	paru -S qt5-adwaita-git qt6-adwaita-git
-	export GTK_THEME=Adwaita:dark
-	export GTK2_RC_FILES=/usr/share/themes/Adwaita-dark/gtk-2.0/gtkrc
-	export QT_STYLE_OVERRIDE=Adwaita-Dark
-	```
-	
-
-### 2. ZSH
-### 3. Splash Image
-	
-	```
-	sudo pacman -S imagemagick
-	magick in.png -type truecolor put.bmp
-	```
-
-### 4. Hyprland
-1. Workspace Overview
-2. Fractional Scaling
-3. Notification Daemon
-4. [l1](https://github.com/mylinuxforwork/dotfiles/tree/main/share) and [l2](https://www.youtube.com/watch?v=J1L1qi-5dr0)
-### 5. [Night Light](https://wiki.archlinux.org/title/Redshift)
-### 6. Plymouth
-### 7. Wofi
-### 8. Waybar
-### 9. Wlogout
-### 10. Pywal
-### 11. kitty
-	[SSH Issue](https://wiki.archlinux.org/title/Kitty#Terminal_issues_with_SSH)
-### Plymouth
-
----
----
-
-# 6. Extras
+# 5. Extras
 > At this point, you are pretty much set up. I will document some more stuff here, which might be interesting to you, but also can be safely ignored if you wish so.
 1. Gaming
    1. Steam + Gamescope
