@@ -15,7 +15,7 @@ Please note that this IS NOT meant to be a replacement of the official arch inst
 If you haven't already, read the [official guide](https://wiki.archlinux.org/title/Installation_guide) and try that out in a VM and understand what is happening. 
 Then if you want a system like me, follow this guide for reference.
 
-### This Guide will help you have the following install:
+### Topics covered in this guide:
 
 1. BTRFS Filesystem + Snapper rollbacks.
 2. Root Partition Encryption + TPM unlocking.
@@ -24,7 +24,6 @@ Then if you want a system like me, follow this guide for reference.
 5. Snapshot Booting with rEFInd btrfs.
 6. System Maintainence and Best Practises.
 7. Hyprland + Apps.
-8. Ricing and Dotfiles.
 
 ### I have tested it on the following hardware:
 
@@ -56,28 +55,32 @@ This is all the preparation you need to do before attempting the install.
 
 ### 1. Download the arch iso
 
-Either use the BitTorrent download (needs a bit-torrent client installed on your machine) or choose your nearest **https** mirror from the [Arch Download Page](https://archlinux.org/download). <br><br>
+Either use the BitTorrent download (needs a bit-torrent client installed on your machine) or choose your nearest **https** mirror from the [Arch Download Page](https://archlinux.org/download). 
+<br><br>
 
 
 ### 2. Verify the Downloaded Image (Optional but recommended)
 
+From the same download page, download the PGP ISO Singature. If you have gnupg install, run the below command from the same directory where both the signature and iso files are located:
 ```
-gpg --keyserver-options auto-key-retrieve --verify archlinux-version-x86_64.iso.sig
+gpg --keyserver-options auto-key-retrieve --verify archlinux-<version>-x86_64.iso.sig archlinux-<version>-x86_64.iso
 ```	
 
-Where gpg is GnuPG, which needs to be installed on an existing system, and archlinux-version-x86_64.iso.sig is the file you download from the same webpage as the iso. <br><br>
+Where gpg is GnuPG, which needs to be installed on an existing system, and archlinux-version-x86_64.iso.sig is the signature file, and the final option is the iso itself.
+<br><br>
 
 ### 3. Create an Installation Medium
 
-You need a flash drive that can be formmated to hold the installation image.
+You need a usb flash drive that can be formmated to hold the installation image.
 
-On windows, use a tool like [Rufus](https://rufus.ie/en/) or [Balena Etcher](https://etcher.balena.io/) . On linux, [KDE ISO Image Write](https://apps.kde.org/isoimagewriter/) or [Gnome Disk Utility](https://gitlab.gnome.org/GNOME/gnome-disk-utility) are some  good Gui applications to do this. Many more methods documented on the wiki [here](https://wiki.archlinux.org/title/USB_flash_installation_medium). <br>
+On windows, use a tool like [Rufus](https://rufus.ie/en/) or [Balena Etcher](https://etcher.balena.io/) . On linux, [KDE ISO Image Write](https://apps.kde.org/isoimagewriter/) or [Gnome Disk Utility](https://gitlab.gnome.org/GNOME/gnome-disk-utility) are some  good Gui applications to do this. Many [more methods](https://wiki.archlinux.org/title/USB_flash_installation_medium) are documented on the wiki. <br>
 	
 <details>
 <summary>Ventoy</summary>
 
-You can alternatively use a software like ventoy, which prevents the need to burn a iso image to a drive, while also allowing you to have multiple iso images on the same disk. I personally use and love it. You can check out more about here on it's [Github page](https://github.com/ventoy/Ventoy).
+You can alternatively use a software like Ventoy, which can be installed to your usb flash drive and then all you need to do is place the iso on the drive to boot from it. More importantly, it allows you to have multiple iso images on the same disk. I personally use and love it. You can check out more about Ventoy on it's [Github page](https://github.com/ventoy/Ventoy).
 </details>
+
 <br>
 
 ### 4. Identify the Installation Target (Optional but recommended)
@@ -89,13 +92,13 @@ If you're like me, and are installing linux on a separate drive, while already h
 
 # 3. Installation
 
-In this section, we will boot off the Arch USB disk created in the previous section and use it to install a minimal Arch Linux with all the base utilities.
+In this section, we will boot off the usb flash drive with the Arch ISO created in the previous section and use it to install a minimal Arch Linux with all the base utilities.
 
 ### 1. Boot from the ISO
 
 Plug in your usb with the Arch ISO, reboot to your PC's Motherboard settings (lookup how to for your model, generally it's by pressing the F2, F10 or Del key during boot), and in the boot priority, set the usb as the first to boot from. 
 
-**If secure boot is enabled, you will have to disable it.**
+#### <mark style='background-color:rgb(46, 152, 154)'> If secure boot is enabled, you will have to disable it.</mark>
 	
 >Further in this guide, I will show you how to generate custom secure boot keys. We will sign our boot files with those keys, so that we can then re-enable secure boot.
 
@@ -105,19 +108,19 @@ Plug in your usb with the Arch ISO, reboot to your PC's Motherboard settings (lo
 
 ### 2. Internet Connectivity
 
-If you have a wired ethernet connection, just check for connectivity using the *ping* command and proceed to step 3.<br>
+If you have a wired ethernet connection, just check for connectivity using the **ping** shown below command and proceed to step 3.<br>
 
 If you're on wifi, run the below commands sequentially to connect to your network:
 
 ```
-iwctl
-device list
-device wlan0 set-property Powered on
-station wlan0 scan
-station wlan0 get-networks
-station wlan0 connect <wifi-name>
-<Enter you wifi password>
-exit
+iwctl									-> Starts the iwctl utility, and puts your inside a new prompt
+device list								-> List all the connection options available to you
+device wlan0 set-property Powered on    -> Turns on wlan0 (wifi module)
+station wlan0 scan						-> Scans for wifi networks
+station wlan0 get-networks				-> Lists results of the scan
+station wlan0 connect <wifi-name>     	-> Connects to provided wifi name
+<Enter you wifi password>				-> Enter password for wifi
+exit									-> Exit the Prompt
 ```
 
 > Here wlan0 is the name of my wifi device as output by *device list*, and \<wifi-name> will be substituted by the name of my Wifi Connection.
@@ -138,8 +141,8 @@ lsblk
 ```
 
 Find the name of your target disk, in my case it is nvme1n1. <br>
-Save this in a variable as to avoid any mistakes during partitioning, especially in a dual boot environment. <br>
 If you don't have a nvme SSD, your disk may be listed as sda,sdb, etc. <br>
+To avoid any mistakes during partitioning, especially in a dual boot environment, save the disk name in a variable using:
 
 ```
 DISK=/dev/nvme1n1
@@ -153,50 +156,47 @@ In this step, we will create a new GPT table on the disk, and then create 2 part
 
 > I am seriously debating the size of the EFI partition. While 512Mb has been more than enough for me is the past, I have seen people recommend 1 GB. 
 I have a 1 Tb SSD on which I will be installing arch, so it's not a big deal for me, and as I plan to use this system long term, I don't want to have to deal with resizing the partition later, so I am making it 1 GB. 
-If you want to have it as 512Mb, use +512M instead of +1G in the command below:
+If you want to have it as 512Mb, use +512M instead of +1G in the 6th command below:
 
-Type in the following commands in order:
+Type in the following commands in order (wherever it says default, just press the Enter key). Also note that whatever changes you do are not applied till you type the last command (w), so don't worry if you mess up anything, you can exit the prompt and restart.
 
 ````
-fdisk $DISK        ---> Starts the fdisk partition tool on the selected disk
+fdisk $DISK        ---> Starts the fdisk partition tool on the selected disk and puts you into it's prompt
 g				   ---> Command to create a new gpt disk label
 n				   ---> Command to create a new partition
-default            ---> Asks for partition number, press enter as default selection is 1, which is correct.
-default			   ---> Asks for first sector, press enter as default is start of the Disk Space.
-+1G                ---> Asks for last sector, sets size of partition 1, this will make it 1 GB.
+*default*          ---> Asks for partition number, press Enter, as default selection is 1, which is correct.
+*default*		   ---> Asks for first sector, press Enter, as default is start of the Disk Space.
++1G                ---> Asks for last sector, which sets size of partition 1, this command will make it 1 GB.
 n                  ---> Command to create a new partition
-default            ---> Asks for partition number, press enter as default selection is 2, which is correct.
-default            ---> Asks for first sector, press enter as default is start of the Disk Space after previous partition.
-default            ---> Asks for last sector, press enter as default is end of the Disk Space.
+*default*          ---> Asks for partition number, press Enter, as default selection is 2, which is correct.
+*default*          ---> Asks for first sector, press Enter, as default is start of the Disk Space after previous partition.
+*default*          ---> Asks for last sector, press Enter, as default is all of the remaining Disk Space.
 t                  ---> Command to change type of partition
 1				   ---> Select Partition 1
-1                  ---> Set partition type as 1 (EFI System)
+1                  ---> Set partition 1's type as 1 (EFI System)
 t   			   ---> Command to change type of partition
 2				   ---> Select Partition 2
-23				   ---> Set partition type as 23 (Linux root x86-64)
+23				   ---> Set partition 2's type as 23 (Linux root x86-64)
 w                  ---> Command to save all the changes we have done till now
 ````
 
-For the first partition, we set the parition type as EFI, and for the second one it was set as Linux Root (x86_64) instead of the default (Linux Filesystem).<br>
+For the first partition, I set the parition type as EFI, and for the second one as Linux Root (x86_64) instead of the default (Linux Filesystem).<br>
 
-This setting of partition type, while technically not necessary, is essential, as this will associate a standard partition GUID with it.<br>
+This setting of partition type, while technically not necessary, is essential, as this will associate a standard [Partition Type GUID](https://unix.stackexchange.com/questions/121176/whats-the-difference-between-the-partition-guid-code-and-partition-unique-guid) with it.<br>
 
-This is then used by systemd (only if using systemd-boot) to recoginze our root partition to decrypt and mount it automatically without a crypttab or fstab file.
+This is then used by systemd auto mount (only if using systemd-boot) to recoginze our root partition to decrypt and mount it automatically without a crypttab or fstab file, using a feature called [Discoverable Partitions](https://www.freedesktop.org/software/systemd/man/latest/systemd-gpt-auto-generator.html). 
 
-
-[Read more about Discoverable Partitions](https://www.freedesktop.org/software/systemd/man/latest/systemd-gpt-auto-generator.html). 
-
-Verify your partition type GUID (separate from a normal partition GUID, output with blkid) with:
+Verify your partition type GUID with:
 
 ```
 lsblk -p -o NAME,PARTTYPE
 ```
 
-Your Root Filesystem (/dev/sdx2 or /dev/nvmenxn1p2) should have a guid of 4f68bce3-e8cd-4db1-96e7-fbcaf984b709. <br>
+Your Root Filesystem (/dev/sdx2 or /dev/nvmenxn1p2) should have a guid of 4f68bce3-e8cd-4db1-96e7-fbcaf984b709. 
+
 The EFI parition should have the guid of c12a7328-f81f-11d2-ba4b-00a0c93ec93b
 
-
-Run lsblk to verify your partition sizes.
+Run **lsblk** to verify your partition sizes.
 
 If your disk name was sda,sdb, you can skip this step. If it was a nvme drive like me, update the DISK variable as shown below. This is because partitons in nvme are named as nvme1n1p1, nvme1n1p2 while other are named as sda1,sda2,
 	
@@ -207,11 +207,11 @@ DISK=/dev/nvme1n1p
 
 
 ### 5. Encryption
-Now we will encrypt the root partition with luks2.
+Now we will encrypt the root partition with LUKS2.
 > When we use luks to encrypt our drive with a password or a key, what it does is create a header. This header is what actually encrypts and decrypts the drive. 
-The password is saved in a 'keyslot', which unlocks only the header. This is different that plain encryption, where the password is used to encrypt the entire disk. This allows a greater flexibility when creating and managing passwords and keys. We can also have multiple 'keyslots' created that can unlock the header.
+The password is saved in a 'keyslot', which unlocks only the header. This is different that plain encryption, where the password is used to encrypt the entire disk. This allows a greater flexibility when creating and managing passwords and keys. We can also have multiple 'keyslots' (i.e. backup keys) created that can unlock the header.
 
-> One downside of this approach is that if our header ever gets corrupted, we lose the ability to unlock our entire drive. To account for this, we will also backup our drive header further in the guide, so that it can be restored if the need arises.
+> One downside of this approach is that if our header ever gets corrupted, we lose the ability to unlock our entire drive. To account for this, we will also backup the header further in the guide, so that it can be restored if the need arises.
 	
 <br>
 
@@ -225,12 +225,11 @@ cryptsetup open --type luks --allow-discards --perf-no_read_workqueue --perf-no_
 
 In the first command we formatted our disk with luks2, it will autogenerate the header and ask you to provide a password to unlock. Make this password strong, or better yet use a [passphrase](https://www.techtarget.com/searchsecurity/definition/passphrase)
 	
-In the second command, we open our encrypted drive, and give it the name of 'root'. From here on, our root partition isn't /dev/sda2 or /dev/nvme1n1p2, but rather it's /dev/mapper/root
-	
-<br>
-I also used some options while opening the encrypted drive. They do the following:
+In the second command, we open our encrypted drive, and give it the name of 'root'. From here on, our root partition isn't /dev/sda2 or /dev/nvme1n1p2, but rather it's /dev/mapper/root. 
 
-<br>
+#### <mark style='background-color:rgb(46, 152, 154)'> For simplicity, you can thing of this as a drive inside another drive. The outer drive is the encryption container, and all our content will be on the inner drive. </mark>
+
+I also used some additional options while opening the encrypted drive. They do the following:
 
 The *--allow-discards* enables [TRIM](https://wiki.archlinux.org/title/Solid_state_drive#TRIM)  support for a SSD [Read More](https://wiki.archlinux.org/title/Dm-crypt/Specialties#Discard/TRIM_support_for_solid_state_drives_(SSD)).
 	
@@ -244,16 +243,17 @@ You can check the flags that your drive is opened with using:
 <br>
 
 ```
-cryptsetup luksDump /dev/sdaX | grep Flags
+cryptsetup luksDump ${DISK}2 | grep Flags
 ```
-> I will be relying on systemd-boot to automatically recognize and decrypt the root partition. If you decide to use grub, you have to so some more setup in the crypttab file.
+
+> I will be relying on systemd-boot to automatically recognize and try to decrypt the root partition. If you decide to use grub, you have to so some more setup in the crypttab file.
 
 <br>
 
 
 ### 6. Format your Partitions
 
-Now I will format the efi partition as a Fat32 and the root partition as BTRFS filesystem.
+Now I will format the efi partition as  Fat32 and the Root partition as BTRFS filesystem.
 
 ```
 mkfs.vfat -F32 -n ESP ${DISK}1
@@ -272,21 +272,27 @@ blkid -o list
 They can have their own rollback logic created. To do this, they need to be mounted as separate subvolumes. Choosing which folders should be subvolumes has no definitive answer.
 	
 	
-The archinstall script creates the following subvolumes - /, /home, /var/log, /var/cache/pacman/pkg and the '@' naming scheme.
+The archinstall script formats the following directories subvolumes, using the '@' naming scheme:
 
-[OpenSuse Recommends the following Subvolumes](https://en.opensuse.org/SDB:BTRFS) - /home, /opt, /root, /srv, /tmp, /usr/local, /var.
+/, /home, /var/log, /var/cache/pacman/pkg.
 
 <br>
 
-This is the subvolume layout and I personally use, and which has worked well for me:
+[OpenSuse Recommends the following Subvolumes](https://en.opensuse.org/SDB:BTRFS), using the directory name as the subvolume name:
+
+/home, /opt, /root, /srv, /tmp, /usr/local, /var.
+
+<br>
+
+This is the subvolume layout I personally use, and which has worked well for me:
 
 | Subvolume Name    | Mount Point | Purpose |
 | ----------------- | ----------- | ------- |
-| @ | / | The root folder, which is also a separate subvolume below the btrfsroot volume, and which we will rollback in case of any issues. |
+| @ | / | The root folder, which is also a separate subvolume below the BTRFS Root volume, and which we will rollback in case of any issues. |
 | @home | /home |  Home Folder where all your Data/Games/Configurations will reside. |
 | @mozilla | /home/$USER/.mozilla | The directory where your firefox data is stored. If you ever rollback your home directory, this will prevent any potential loss of browsing data. |
 | @ssh | /home/$USER/.ssh | Same as above, to protect any ssh keys/configs you have. |
-| @opt | /opt |  This is where third party applications are installed.. |
+| @opt | /opt |  This is where third party applications are installed.|
 | @var | /var |  Where all temporary files/logs/cache is stored. |
 | @snapshots | /.snapshots |  This subvolume will store snapshots of our @ subvolume (Managed via Snapper). |
 | @home-snapshots | /home/.snapshots | This subvolume will store snapshots of our @home subvolume (Managed via Snapper). |
@@ -308,9 +314,9 @@ Get subvol id of @ and set it as default for the root (eg. 256)
 btrfs subvolume set-default 256 /mnt
 ```
 
->I am making the whole of var into one subvolume. This is not recommended by arch, as pacman stores it's cache in the /var/cache/pacman directory. 
-But I am going to configure pacman cache to be in the tmp directory, you can read the rationale behind this [here](https://www.reddit.com/r/archlinux/comments/1hgbl1k/what_is_varcachepackagepkg_and_why_is_it_so_large/). 
-But essentially, I am not saving any pacman cache.
+>I am making the whole of */var* into one subvolume. This is not recommended by arch, as pacman stores it's cache in the */var/cache/pacman* directory. 
+But I am going to configure pacman cache to be in the */tmp* directory, you can read the rationale behind this in this [reddit post](https://www.reddit.com/r/archlinux/comments/1hgbl1k/what_is_varcachepackagepkg_and_why_is_it_so_large/). 
+But essentially, I am not saving any pacman cache, so it doesnt matter to me.
 
 Optionally, if you use Thunderbird, Chrome, or Gnupg you can also create the below subvolumes to preserve their data similar to @mozilla above.
 | Subvolume Name    | Mount Point |
@@ -321,24 +327,23 @@ Optionally, if you use Thunderbird, Chrome, or Gnupg you can also create the bel
 
 
 
->Btrfs subvolumes can also be created in the future if you need it. 
+>Btrfs subvolumes can also be created in the future on an operational system, if you need it. 
 		
 <br>
 
 ### 7. Mount Options
 
-Mount all the subvolumes you created using the same mount options as the root.
+Mount all the subvolumes you created using the below commands:
 
 ```
 umount /mnt
 mount -o defaults,noatime,space_cache=v2,ssd,compress-force=zstd:1,commit=120,subvol=@ /dev/mapper/root /mnt
 mount -o subvol=@home /dev/mapper/root /mnt/home
-mount -o subvol=@home /dev/mapper/root /mnt/home
 mount -o subvol=@opt /dev/mapper/root /mnt/opt
 mount -o subvol=@var /dev/mapper/root /mnt/var
 ```
 
-We will mount the @mozilla, @ssh, @snapshots and @home-snapshots subvolumes,  later on.
+We will mount the @mozilla, @ssh, @snapshots and @home-snapshots subvolumes,  later in the guide.
 
 > Once a subvolume is mounted with a set of options, all other subvoumes follow the same options. This is fine mostly as I need the same options everywhere, except in the @var directory, where I want to have the [Nodatacow](https://www.reddit.com/r/btrfs/comments/n6slx3/what_is_the_advantage_of_nodatacowdisabling_cow/) mount option. 
 So instead I will set the attribute +C on the var directory, which accomplishes the same thing.
@@ -349,9 +354,9 @@ Run this command to disbale CoW in the @var subvolume
 chattr +C /mnt/var
 ```
 
-[Read more about various BTRFS mount Options](https://btrfs.readthedocs.io/en/stable/Administration.html#mount-options)
+[Read more about various BTRFS mount Options.](https://btrfs.readthedocs.io/en/stable/Administration.html#mount-options)
 <br>
-<br>
+
 
 Also mount the efi partition using:
 
@@ -360,24 +365,27 @@ mkdir -p /mnt/efi
 mount -o defaults,fmask=0077,dmask=0077 /dev/{DISK}1 /mnt/efi
 ```
 
+<br>
 
 ### 8. Update Mirrors and Pacstrap
 
-Before we download and install the necessary packages, let us update our mirrors, for the best download speed, by running the refelctor command. Replace $COUNTRY with your country name:
+Before we download and install the necessary packages, let us update our Pacman mirrors, for the best download speed, by running the refelctor command. Replace $COUNTRY with your country name:
 
 ```
 reflector --country $COUNTRY --age 24 -l 10 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
 ```
 
 Now, we install the base required packages for an Arch Linux install using the pacstrap command on /mnt where the system root is mounted. Press enter after running these commands:
+
+#### <mark style='background-color:rgb(46, 152, 154)'> If you have an intel cpu, replace amd-ucode with intel-ucode below. </mark>
+
 	
 ```
 pacman -Sy archlinux-keyring
 pacstrap -K /mnt base base-devel linux linux-firmware amd-ucode cryptsetup btrfs-progs dosfstools posix util-linux git networkmanager sudo openssh vim reflector
 ```
 
-#### <mark style='background-color:rgb(46, 152, 154)'> If you have an intel cpu, replace amd-ucode with intel-ucode above. </mark>
-
+<br>
 
 ### 9. Chroot into the install and do basic setup
 
@@ -426,7 +434,7 @@ arch-chroot /mnt
 	```
 	vim /etc/pacman.conf
 	```
-	Under misc option, uncomment (blue) and add(purple) the following lines:
+	Under misc option, uncomment(blue)/add(purple) the following lines:
 
 	---
 	#### <mark style='background-color:rgb(46, 152, 154)'> Color </mark>
@@ -443,7 +451,7 @@ arch-chroot /mnt
 	vim /etc/pacman.conf
 	```
 
-	Remove the '#' from the line starting with #CacheDir save:
+	Remove the '#' from the line starting with #CacheDir, and make it look like:
 
 	---
 	#### <mark style='background-color:rgb(46, 152, 154)'> CacheDir     = /tmp/cache-pacman/pkg/ </mark>
@@ -470,7 +478,7 @@ arch-chroot /mnt
 	visudo
 	```
 
-	Uncomment by removing the '#' of the **FIRST** line starting wiht '# %wheel'. Use
+	Uncomment by removing the '#' of the **FIRST** line starting with '# %wheel'.
 
 	---
 	#### <mark style='background-color:rgb(46, 152, 154)'> %wheel ALL=(ALL:ALL) ALL </mark>
@@ -478,7 +486,7 @@ arch-chroot /mnt
 	---
 
 
-4. Mount 2 of the remaining 4 subvolumes:
+4. Mount 2 of the remaining 4 subvolumes, (replace $USER with whatever username you chose):
 	```
 	mkdir /home/$USER/{.mozilla,.ssh}
 	mount -o subvol=@mozilla /dev/mapper/root /mnt/home/$USER/.mozilla
@@ -509,9 +517,9 @@ However, I will still manually define my mount points in fstab. This is because:
 <br>	
 
 ### 12. Generate Unified Kernel Images
-[Unified Kernel Images](https://wiki.archlinux.org/title/Unified_kernel_image) is a concept of generating a single efi file to boot from. This helps in maintainence and signing for secure boot.
+[Unified Kernel Images](https://wiki.archlinux.org/title/Unified_kernel_image) is a concept of combining the kernel, microcode, and other binaries needed during boot, and generating a single efi file to boot from. This helps in maintainence also helps with secure boot management.
 
-While this may sound difficult, it's been made very easy by various tools. I will use the [mkinitcpio](https://wiki.archlinux.org/title/Mkinitcpio) in this instance. By just changing a few Configuration options, it will generate the UKI's automatically now and in the future.
+While this may sound difficult, it's been made very easy by various tools. I will use the [mkinitcpio](https://wiki.archlinux.org/title/Mkinitcpio) in this instance. By just changing a few Configuration options, it will be set generate the UKI's automatically when any of the component files are updates.
 
 Run the below commands:
 ```
@@ -534,8 +542,7 @@ vim /etc/mkinitcpio.d/linux.preset
 Comment the line starting with default_image and fallback_image and uncomment the lines starting with ALL_config, default_uki, default_options and fallback_uki.
 Make the file look like this:
 
----
-
+```
 All_config="/etc/mkinitcpio.conf"
 
 ALL_kver="/boot/vmlinuz-linux"
@@ -552,14 +559,12 @@ default_options="--splash /usr/share/systemd/bootctl/splash-arch.bmp"
 
 #fallback_config="/etc/mkinitcpio.conf"
 
-fallback_image="/boot/initramfs-linux-fallback.img"
+#fallback_image="/boot/initramfs-linux-fallback.img"
 
 fallback_uki="/efi/EFI/Linux/arch-linux-fallback.efi"
 
 fallback_options="-S autodetect"
-
-
----
+```
 
 
 Run below command to generate the unified kernel images:
@@ -569,7 +574,7 @@ mkinitcpio -P
 
 ### 13. Enable services
 
-Network Services:
+Using the below commands, I will enable networking using systemd-resolve for dns resolution and NetworkManager to manage networks. An alternative to NetworkManager is systemd-networkd, but I will mask it, as I prefer NetworkManager. I will also enable reflector to update pacman mirrors on every boot, and sshd to enable ssh.
 
 ```
 systemctl enable systemd-resolved NetworkManager
@@ -577,7 +582,7 @@ systemctl mask systemd-networkd
 systemctl enable reflector
 systemctl enable sshd
 ```
-[Read more about Reflector config](https://ostechnix.com/retrieve-latest-mirror-list-using-reflector-arch-linux/).
+[Read more about you can configure Reflector](https://ostechnix.com/retrieve-latest-mirror-list-using-reflector-arch-linux/).
 
 <br>
 
@@ -921,8 +926,9 @@ WantedBy=multi-user.target
 
 2. Btrfs filesystem
 	1. [Defragmentation](https://wiki.archlinux.org/title/Btrfs#Defragmentation)
-	2. Scrub
-	3. Balance
+	2. TRIM
+	3. Scrub
+	4. Balance
 
 
 3. Snapshot Rollbacks
@@ -977,13 +983,15 @@ Disable indexing of snapshots
    1. Steam + Gamescope
    2. Heroic Games Launcher
 2. Virtualization
-3. AppArmor
-4. Stay upto date with arch news
-5. [Power Management](https://wiki.archlinux.org/title/Power_management#)
-6. VS Code
-7. Clipboard manager
-8. [CPU Frequency Scaling](https://wiki.archlinux.org/title/CPU_frequency_scaling)
-9. [fwupd](https://github.com/fwupd/fwupd)
-10. Enable https://wiki.archlinux.org/title/Pkgstats to help the community
-11. Extra kernels
-12. Sign an Arch iso with your keys
+3. HDR
+4. Bluetooth
+5. AppArmor
+6. Stay upto date with arch news
+7. [Power Management](https://wiki.archlinux.org/title/Power_management#)
+8. VS Code
+9. Clipboard manager
+10. [CPU Frequency Scaling](https://wiki.archlinux.org/title/CPU_frequency_scaling)
+11. [fwupd](https://github.com/fwupd/fwupd)
+12. Enable https://wiki.archlinux.org/title/Pkgstats to help the community
+13. Extra kernels
+14. Sign an Arch iso with your keys

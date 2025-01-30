@@ -4,6 +4,7 @@ https://wiki.archlinux.org/title/Swap#Swap_file
 tmpfs -> In arch, and with systemd, tmpfs is automatically mounted (/tmp, different than /var/tmp)
 
 
+Verify all commands again
 
 mlocate (install with pacman) and updatedb
 
