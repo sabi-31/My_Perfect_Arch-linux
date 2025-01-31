@@ -781,7 +781,8 @@ sudo sbctl sign -s /efi/EFI/refind/refind_x64.efi
 ```
 
 You might have to sign more files, if you have installed additional kernels. Use the *sbctl verify* command to check if any more files need signing.
-Now we can re-enable secure boot, and it should work fine.
+
+Now go to your motherboard's firmware setup and enable secure boot. Check if it boots properly or not.
 
 
 
@@ -805,7 +806,7 @@ Now we can re-enable secure boot, and it should work fine.
 	cryptsetup luksHeaderRestore /dev/device --header-backup-file /path-to/luks-header-backup.img
 	```
 
-2. Manage Keyslots:
+2. Manage Keyslots (Optional but Recommended):
 
 	While we normally use a passord to unlock the luks header, it can support multiple unlocking options, one of which is a keyfile. 
 	
@@ -846,14 +847,14 @@ Now we can re-enable secure boot, and it should work fine.
 	cryptsetup luksKillSlot /dev/gpt-auto-root-luks \<keyslot-number>
 	```
 
-	Be careful not to remove all the keys as this might render your drive unlockable. (You can recover from such an accident if you hvae the Luks Header Backed up)
+	Be careful not to remove all the keys as this might render your drive unlockable. (You can recover from such an accident if you have the Luks Header Backed up)
 
 
 3. Setup auto unlocking via TPM
 
-	We can setup our encrypted drive to be unlocked automatically by saving a key on the TPM chip (present in most modern PC's) and enrolling it into the luks header with the help of [Systemd-cryptenroll](https://wiki.archlinux.org/title/Systemd-cryptenroll).
+	We can enroll our TPM2 chip (present in most modern PC's) on the LUKS volume with the help of [Systemd-cryptenroll](https://wiki.archlinux.org/title/Systemd-cryptenroll) to have the TPM2 then automatically unlock the drive during boot.
 
-	This key can also be bound the PCR's on the TPM (basically they do some verifications on your system beforr allowing the key to be used.)
+	This unlocking mechanism also be bound the PCR's on the TPM (basically it checks some stuff like software version,etc. on the pc before unlocking. This is an additional security measure.). We can also add a pin to this.
 	
 	Check TPM support on your PC using:
 
@@ -861,18 +862,32 @@ Now we can re-enable secure boot, and it should work fine.
 	systemd-analyze has-tpm2	
 	```
 
-	If you see an output like tpm0, them a tpm device exists
+	If you see an output like tpm0, then a tpm device exists and you are good to do the next steps.
 		
-	Choose which PCR's to use. A pcr is a register on the TPM that can measure specific values, like is secure boot on or off, what is the firmware version,etc. You can see the full list [Here](https://wiki.archlinux.org/title/Trusted_Platform_Module#Accessing_PCR_registers)
+	Choose which PCR's to use. A pcr is a register on the TPM that can measure specific values. In this case, I will be using PCRs 0, You can see the full list [Here](https://wiki.archlinux.org/title/Trusted_Platform_Module#Accessing_PCR_registers)
 
-	I will use PCR 0,7. This makes it so that if I upgrade my Motherboard firmware or turn off secure boot, the TPM won't be able to unlock my drive. You can use more PCR's if you wish so.
+	I will use the following PCR's:
+	
+	| PCR Number | Name | What it measures | What will cause change |
+	| --- | --- | --- | --- |
+	| 0 | platform-code | System Firmware | Changes on firmware update of the motherboard |
+	| 1 | platform-config | System Firmware configuration | Changes if you change any hardware components like RAM, CPU, etc, |
+	| 7 | secure-boot-policy | State of secure boot | Changes if secure boot is turned on/off or keys are updated. |
 
-	The following command generates a key, and enrolls it both in the TPM and the Luks header, while also binding it to the PCR's 0 and 7:
+	This makes it so that if I upgrade my Motherboard firmware, hardware components or turn off secure boot the TPM won't be able to auto unlock my drive. You can use more PCR's if you wish to.
+
+	The following enrolls the TPM into the Luks header, while also binding it to the PCR's 0, 1, and 7:
 		
 	```
-	sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=0+7  /dev/gpt-auto-root-luks
+	sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=0+1+7  /dev/gpt-auto-root-luks
 	```
 
+	Verify the enrollment with:
+	```
+	sudo systemd-cryptenroll /dev/gpt-auto-root-luks
+	```
+
+	You should see an entry with "tpm2", along with any other passphrases or keys you enrolled in the Luks drive. Try to reboot your pc and this time you should not have to enter the encryption password.
 
 ### 6. Swap and Hibernation
 For swap, I will use zram instaled of a swap partition
