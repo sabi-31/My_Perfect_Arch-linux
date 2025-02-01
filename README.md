@@ -997,6 +997,7 @@ Disable indexing of snapshots
 1. Gaming
    1. Steam + Gamescope
    2. Heroic Games Launcher
+   3. Controller Support
 2. Virtualization
 3. HDR
 4. Bluetooth
