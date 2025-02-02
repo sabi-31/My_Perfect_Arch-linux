@@ -889,46 +889,69 @@ Now go to your motherboard's firmware setup and enable secure boot. Check if it 
 
 	You should see an entry with "tpm2", along with any other passphrases or keys you enrolled in the Luks drive. Try to reboot your pc and this time you should not have to enter the encryption password.
 
-### 6. Swap and Hibernation
-For swap, I will use zram instaled of a swap partition
-[https://wiki.archlinux.org/title/Zram]https://wiki.archlinux.org/title/Zram
 
 
-Hibernation [Read More](https://wiki.archlinux.org/title/Power_management/Suspend_and_hibernate#)
-Without going into too many details, suspend capabilites are built into the kernel and should be available to use directly. If you want to use hibernate, you need a swap partition and some setup which is explained in the link above. 
-For my AMD system, with a B650 motherboard, I can see that the hardware supports S2Idle (aka saving data on RAM and powering all other components off). I am fine with this method.
+### 6. Swap and Hibernation/Suspend
+For swap, I will use swap on zram instead of a separate disk partition [Read More](https://wiki.archlinux.org/title/Zram).
 
-I did have troubles waking my system back up after sending it to suspend. On reading the wiki, I can across a [solution](https://wiki.archlinux.org/title/Power_management/Suspend_and_hibernate#PC_will_not_wake_from_sleep_on_A520I_and_B550I_motherboards), which worked perfectly. 
-Firstly, run the below command and check if GPP0 is enabled from the output
+In simple words, when there are files on your RAM that are not actively being used, they can be compressed stored on Zram. While Zram uses RAM, it compresses the data very efficiently so overall we get more performance. It's better than swap on a disk as RAM is faster than a disk.
+
+To create a Zram device, and use it as the swap, I will use a udev rule as documented on the wiki. Run the below 3 commands as root: 
+1. Enable to Zram module to load on boot
+	```
+	echo 'zram' > /etc/modules-load.d/zram.conf
+	```
+
+2. Create a udev rule to specify zram parameters (I have set size as 16G, adjust it to your liking):
+	```
+	echo 'ACTION=="add", KERNEL=="zram0", ATTR{initstate}=="0", ATTR{comp_algorithm}="zstd", ATTR{disksize}="16G", RUN="/usr/bin/mkswap -U clear %N", TAG+="systemd"' > /etc/udev/rules.d/99-zram.rules
+	```
+
+	Don't create zram greater than twice the size of your physical RAM (Max expected compression ratio is 2:1, so more space will be wasted.)
+
+3. Modify the fstab file by adding this line at the very start:
+	```
+	/dev/zram0 none swap defaults,discard,pri=100 0 0
+	```
+	
+4. Optimize Zram performance (optional) [Read More](https://wiki.archlinux.org/title/Zram#Optimizing_swap_on_zram)
+	```
+	echo 'vm.swappiness = 180' > /etc/sysctl.d/99-vm-zram-parameters.conf
+	echo 'vm.watermark_boost_factor = 0' >> /etc/sysctl.d/99-vm-zram-parameters.conf
+	echo 'vm.watermark_scale_factor = 125' >> /etc/sysctl.d/99-vm-zram-parameters.conf
+	echo 'vm.page-cluster = 00' >> /etc/sysctl.d/99-vm-zram-parameters.conf
+	```
+
+Now Reboot your system. Then run lsblk and you should see a zram0 device of 16Gb mounted as Swap.
+
+
+Note: If using Zram, disable [Zswap](https://wiki.archlinux.org/title/Zswap#Toggling_zswap) for better performance. It is enabled in kernels like linux-lts.
+
+To check if it's enabled, run:
 
 ```
-cat /proc/acpi/wakeup
+lsmod | grep zswap
 ```
 
-If it is, run the below commands to disbale it, and test suspend is working:
+If it is enabled, disable it permanently by running the following commands as the root user:
 
 ```
 su
-echo GPP0 > /proc/acpi/wakeup
-systemctl suspend
+echo 'quiet re zswap.enabled=0' > /etc/kernel/cmdline
+mkinitcpio -P
 ```
 
-If this works fine, make this change permanent by creatin the following file:
 
-```
-vim /etc/systemd/system/toggle-gpp0-to-fix-wakeup.service
-```
+<br>
 
-Add the following lines to it:
+[Suspend and Hibernate](https://wiki.archlinux.org/title/Power_management/Suspend_and_hibernate#):
+Without going into too many details, these capabilites are built into the kernel and should be available to use directly. If you want to use hibernate, you need a separate swap partition (Zram method can't be used) and need to do some additional setup which is explained in the link above. 
 
-[Unit] <br>
-Description="Disable GPP0 to fix suspend issue"
+For my AMD system, with a B650 motherboard, I can see that the hardware supports S2Idle(Suspend) aka saving data on RAM while powering all other components off. I am fine with this method.
 
-[Service]<br>
-ExecStart=/bin/sh -c "/bin/echo GPP0 > /proc/acpi/wakeup"
+I did have troubles waking my system back up after suspending it. On reading the wiki, I can across this [solution](https://wiki.archlinux.org/title/Power_management/Suspend_and_hibernate#PC_will_not_wake_from_sleep_on_A520I_and_B550I_motherboards), which worked perfectly. 
 
-[Install]<br>
-WantedBy=multi-user.target
+
 
 ### 7. Security
 	1. Firewall
