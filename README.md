@@ -485,6 +485,15 @@ arch-chroot /mnt
 
 	---
 
+	Fun Easter egg:
+	Add the following line to the /etc/sudoers file using 'visudo' to see a funny message everytime you enter a wrong password:
+
+	```
+	Defaults insults
+	```
+
+	But don't have too much fun with it, if you enter a wrong password 3 times, you will not be able to use the sudo command for some time. 
+
 
 4. Mount 2 of the remaining 4 subvolumes, (replace $USER with whatever username you chose):
 	```
@@ -954,10 +963,34 @@ I did have troubles waking my system back up after suspending it. On reading the
 
 
 ### 7. Security
-	1. Firewall
-	2. 
+To start with this section, first read the [arch wiki article on security](https://wiki.archlinux.org/title/Security).
+
+Another good [article on hardening arch linux](https://vez.mrsk.me/linux-hardening).
+
+There's a lot you can do in terms of hardening your system, here are some things I do that you can as well:
+
+1. Choose a secure password
+2. SSH: If you have a SSH server running, and exposed to the internet, it's not a bad idea to follow [this guide](https://www.ibm.com/docs/en/aspera-fasp-proxy/1.4?topic=appendices-securing-your-ssh-server)
+   1. Remove Root login
+   2. Change port
+   3. Disable password login and only use public keys
+3. Firewall - UFW
+   Here are some commands to use ufw and setup a basic firewall:
+   
+   ```
+   sudo pacman -S ufw
+   sudo ufw allow ssh
+   sudo ufw default deny incoming
+   sudo ufw enable
+   ```
+
+   This should be enough for a basic desktop. If you run any servers/application, you may have to whitelist those ports.
+   Note that if you run any docker containers, it bypasses ufw rules, so keep it in mind. [Read More](https://docs.docker.com/engine/network/packet-filtering-firewalls/#docker-and-ufw)
+
+4. AppArmor/Firejail/Bubblewrap -> While these are recommneded to be used, I have not personally used them, so I can't give any recommendations. If you think you need them, read up on it and use it. I will also use it and maybe update the guide with my learnings.
 
 ### 8. System Maintainence
+
 
 1. [Maintainence](https://gist.github.com/MaxXor/ba1665f47d56c24018a943bb114640d7)
 
@@ -969,12 +1002,12 @@ I did have troubles waking my system back up after suspending it. On reading the
 	4. Balance
 
 
-3. Snapshot Rollbacks
+### 9. Refind BTRFS
+1. Snapshot Rollbacks
 	1. [Snapshot Rollbacks]
 	2. [Snapshot Booting](https://wiki.archlinux.org/title/Btrfs#Booting_into_snapshots)
 
-
-### 9. Snapper and snapshots
+### 10. Snapper and snapshots
 > Alright, all the efforts we put into btrfs and subvolumes, will help us now.
 
 By now, you must be aware of the btrfs snapshot feature. There is a tool developed by OpenSuse know as [snapper](https://github.com/openSUSE/snapper) which is a helper application for this purpose. Using snapper, we will create a config for our root subvolume (@) containing most of our system data, and another for the home subvolume(@home), which contains most of our user data. Then we can setup snapper to create and manager snapshots of them, to safeguard and if necessary, rollback this data (Remember, the other subvolumes we created are exempt from this). Snapper can also do automatic snapshots on a schedule, and there's a pacman hook known as snap-pac that can create snapshots whenever we use pacman to install/upgrade our system.
