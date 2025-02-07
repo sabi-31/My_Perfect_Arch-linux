@@ -1004,13 +1004,20 @@ There's a lot you can do in terms of hardening your system, here are some things
 
 ### 9. Refind BTRFS
 1. Snapshot Rollbacks
+```
+paru -S refind-btrfs
+sudo systemctl enable --now refind-btrfs
+```
 	1. [Snapshot Rollbacks]
 	2. [Snapshot Booting](https://wiki.archlinux.org/title/Btrfs#Booting_into_snapshots)
 
 ### 10. Snapper and snapshots
 > Alright, all the efforts we put into btrfs and subvolumes, will help us now.
 
-By now, you must be aware of the btrfs snapshot feature. There is a tool developed by OpenSuse know as [snapper](https://github.com/openSUSE/snapper) which is a helper application for this purpose. Using snapper, we will create a config for our root subvolume (@) containing most of our system data, and another for the home subvolume(@home), which contains most of our user data. Then we can setup snapper to create and manager snapshots of them, to safeguard and if necessary, rollback this data (Remember, the other subvolumes we created are exempt from this). Snapper can also do automatic snapshots on a schedule, and there's a pacman hook known as snap-pac that can create snapshots whenever we use pacman to install/upgrade our system.
+By now, you must be aware of the btrfs snapshot feature. There is a tool developed by OpenSuse know as [snapper](https://github.com/openSUSE/snapper) which is a helper application for this purpose. 
+Using snapper, we will create a config for our root subvolume (@) containing most of our system data, and another for the home subvolume(@home), which contains most of our user data. Then we can setup snapper to create and manager snapshots of them, to safeguard and if necessary, rollback this data (Remember, the other subvolumes we created are exempt from this). 
+Snapper can also do automatic snapshots on a schedule, and there's a pacman hook known as snap-pac that can create snapshots whenever we use pacman to install/upgrade our system.
+There's also a gui application btrfs-assistant that can help with managing snapshots:
 
 ```
 sudo pacman -S snapper snap-pac
@@ -1018,29 +1025,62 @@ paru -S btrfs-assistant
 ```
 
 Run the below commands in order to:
-	1. Create Snapper Configurations
-	2. Enable your user to work with them without sudo privileges
-	3. Setup Automatic Creation and Cleanup of snapshots
-	4. Disable Indexing of snapshtos to improve performance.
-
-	```
-	sudo snapper -c root create-config /
-	sudo snapper -c home create-config /home
-	```
-
-Auto Snapshots Timer and Cleanup
-
+1. Create Snapper Configurations for the root and home subvolumes.
 ```
-vim /etc/updatedb.conf
+sudo snapper -c root create-config /
+sudo snapper -c home create-config /home
+sudo snapper list-configs
+```
+After this, unmount and delete the /.snapshots, and /home/.snapshots  subvolumes, and instead mount @snapshots and @home-snapshots in their place:
+```
 ```
 
-PRUNENAMES = ".snapshots "
-PRUNEPATHS = "/media"
-PRUNE_BIND_MOUNTS = no
+Add these entries to your fstab
 
-Disable indexing of snapshots
-[wiki-preventing-slowdowns](https://wiki.archlinux.org/title/Snapper#Preventing_slowdowns)
+2. Enable your user to work with them without sudo privileges
+```
+sudo snapper -c root set-config ALLOW_USERS=$USER SYNC_ACL=yes
+sudo snapper -c home set-config ALLOW_USERS=$USER SYNC_ACL=yes
+```
 
+3. Setup Automatic Creation and Cleanup of snapshots
+```
+sudo systemctl daemon-reload
+sudo mount -va
+```
+
+4. Disable Indexing of snapshots to improve performance.
+```
+echo 'PRUNENAMES = ".snapshots"' | sudo tee -a /etc/updatedb.conf
+```
+
+Since we installed snap-pac, from now on, whenever we install any update/package using pacman, it will create a pre-post snapshots for that transaction.
+So if something get's messed up during an update, you can rollback the changes to the pre snapshote and be good to go. (remember to run mkinitcpio after a rollback if the update included any kernel/microcode changes)
+
+
+5. Auto Snapshots Timer and Cleanup
+By default, both snapshot configs will have automatic creation of periodic snapshtos enabled. You can control this behaviour. I will disable auto snapshots for home, and start the associated services:
+```
+sudo snapper -c home set-config TIMELINE_CREATE=no
+sudo systemctl enable --now snapper-timeline.timer
+sudo systemctl enable --now snapper-cleanup.timer
+```
+
+The default timeline is once per day, you can control this behaviour by editing the file */etc/snapper/configs/root*. You can specify the number and age of snapshots for creation and cleanup.
+
+You can also take a manual snapshot of root at any point using:
+```
+snapper -c root create --description <Description>
+```
+
+I will generally take a manual snapshot after I have setup my system, and then anytime later when I feel I have a stable system with a lot more changes than the pervious snapshot.
+
+If you instead want to take a pre-post snapshot after running a command, use:
+```
+snapper -c root create --command <command-to-run>
+```
+
+6. Restoring Snapshots: You can refer to this [link](https://sysguides.com/install-fedora-with-snapshot-and-rollback-support#6-7-snapper-tests) for some practise on how to use snapshots.
 
 
 > At this point we have a system with a good base and security features while also offering style(kinda) and convinience. You can stop using the guide at this point and make most of the further decisions on your own as to what type of theming and workflow you prefer. I will document my own rice and dotfiles in another Repo. Meanwhile, there are more things that can be done with Arch linux, refer the next section for that.
