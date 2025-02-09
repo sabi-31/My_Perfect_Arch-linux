@@ -7,45 +7,45 @@ Table of Contents
 - [5. Extras](#5-extras)
 
 ---
----
+
+
 # 1. Introduction and Credits
-> I started this as a personal reference document, but I ended up formatting it as a guide since I think it will be helpful to many people out there who want the same type of install. 
+> I started this project as a personal reference document, but ended up formatting it as a guide since I think it will be helpful to many people out there who want the same type of install. 
 I will walk through and explain the rationale behind all the steps from beginning to end, towards installing what is (subjectively) a perfect arch linux install.
-Please note that this IS NOT meant to be a replacement of the official arch installation documentation. It's just how I did it.
+Please note that this IS NOT meant to be a replacement of the official arch installation documentation, it's just how I did it.
 If you haven't already, read the [official guide](https://wiki.archlinux.org/title/Installation_guide) and try that out in a VM and understand what is happening. 
 Then if you want a system like me, follow this guide for reference.
 
-### Topics covered in this guide:
+### Main Features of this install:
 
-1. BTRFS Filesystem + Snapper rollbacks.
-2. Root Partition Encryption + TPM unlocking.
-3. Unified Kernel Images.
-4. Secure Boot.
-5. Snapshot Booting with rEFInd btrfs.
-6. System Maintainence and Best Practises.
-7. Hyprland + Apps.
+1. BTRFS Filesystem with Snapper for snapshots and rollbacks.
+2. Secure Boot
+3. Unified Kernel Images
+4. Full Root Filesystem Encryption + Auto TPM unlocking.
+5. Dual Boot (Existing Windows Install on a separate drive).
+6. ~~Snapshot Booting with rEFInd btrfs.~~
+7. System Maintainence and Best Practises.
+
 
 ### I have tested it on the following hardware:
 
-1. AMD CPU (x86-64)
+1. AMD CPU (Ryzen 9 7900x - x86-64)
 2. AMD GPU (7900 GRE)
 3. Asrock Motherboard with UEFI support.
 
 All the steps mentioned here should regardless work for you. If you have an INTEL CPU and/or a NVIDIA GPU, there are some minor differences, and I will point them out.
 
 
-#### <mark style='background-color:rgb(46, 152, 154)'> While I will try to explain what I'm doing here and why, this is not a noob friendly guide. You need to have an understanding of basic concepts of linux and know your way around the terminal. </mark>
+#### <mark style='background-color: #f44336;'> While I will try to explain what I'm doing here and why, this is not a noob friendly guide. You need to have an understanding of basic concepts of linux and know your way around the terminal. </mark>
 
 
-<br>
 A lot of the stuff I will talk about here, was hugely inspired by other people in the community and their work. Special Credits to:
 
 1. [This guide by Walian which was the main motivator.](https://walian.co.uk/arch-install-with-secure-boot-btrfs-tpm2-luks-encryption-unified-kernel-images.html)
 2. [This guide based on fedora by Madhu@sysguides.](https://sysguides.com/install-fedora-with-snapshot-and-rollback-support)
 3. [And offcourse, the Arch Wiki.](https://wiki.archlinux.org/title/Main_page)
 
-<br>
-Finally, I am also by no means an expert, so I welcome any and all feedback on this. Lets arch.
+Finally, I am  by no means an expert, so I welcome any and all feedback on this. Lets start:
 
 ---
 ---
@@ -61,13 +61,14 @@ Either use the BitTorrent download (needs a bit-torrent client installed on your
 
 ### 2. Verify the Downloaded Image (Optional but recommended)
 
-From the same download page, download the PGP ISO Singature. If you have gnupg install, run the below command from the same directory where both the signature and iso files are located:
+From the same download page, download the PGP ISO Singature. If you have gnupg installed, run the below command from the same directory where both the signature and iso files are located:
 ```
 gpg --keyserver-options auto-key-retrieve --verify archlinux-<version>-x86_64.iso.sig archlinux-<version>-x86_64.iso
 ```	
 
-Where gpg is GnuPG, which needs to be installed on an existing system, and archlinux-version-x86_64.iso.sig is the signature file, and the final option is the iso itself.
+Where archlinux-\<version\>-x86_64.iso.sig is the signature file, and the final option is the iso itself.
 <br><br>
+
 
 ### 3. Create an Installation Medium
 
@@ -75,17 +76,21 @@ You need a usb flash drive that can be formmated to hold the installation image.
 
 On windows, use a tool like [Rufus](https://rufus.ie/en/) or [Balena Etcher](https://etcher.balena.io/) . On linux, [KDE ISO Image Write](https://apps.kde.org/isoimagewriter/) or [Gnome Disk Utility](https://gitlab.gnome.org/GNOME/gnome-disk-utility) are some  good Gui applications to do this. Many [more methods](https://wiki.archlinux.org/title/USB_flash_installation_medium) are documented on the wiki. <br>
 	
-<details>
+<details style='background-color: #3f50b5;'>
 <summary>Ventoy</summary>
 
-You can alternatively use a software like Ventoy, which can be installed to your usb flash drive and then all you need to do is place the iso on the drive to boot from it. More importantly, it allows you to have multiple iso images on the same disk. I personally use and love it. You can check out more about Ventoy on it's [Github page](https://github.com/ventoy/Ventoy).
+You can alternatively use a software like Ventoy, which can be installed to your usb flash drive and then all you need to do is place the iso on the drive to boot from it. 
+
+More importantly, it allows you to have multiple iso images on the same disk. I personally use and love it. You can check out more about Ventoy on it's [Github page](https://github.com/ventoy/Ventoy).
 </details>
 
-<br>
+<br><br>
 
 ### 4. Identify the Installation Target (Optional but recommended)
 
 If you're like me, and are installing linux on a separate drive, while already having windows on another drive, you need to check and make sure to correctly identify the drive. In linux, you can list all your drives using the command 'lsblk'. It labels SATA drives as sda1,sda2,... and nvme drives as nvme0n1, nvme1n1, etc. To avoid nuking your windows install, make a note of the correct drive. You can identify drives by their labels, existing partition layouts, storage capacity, etc.
+
+<br><br>
 
 ---
 ---
@@ -98,13 +103,15 @@ In this section, we will boot off the usb flash drive with the Arch ISO created 
 
 Plug in your usb with the Arch ISO, reboot to your PC's Motherboard settings (lookup how to for your model, generally it's by pressing the F2, F10 or Del key during boot), and in the boot priority, set the usb as the first to boot from. 
 
-#### <mark style='background-color:rgb(46, 152, 154)'> If secure boot is enabled, you will have to disable it.</mark>
+#### <mark style='background-color: #f44336'> If secure boot is enabled, you will have to disable it.</mark>
 	
 >Further in this guide, I will show you how to generate custom secure boot keys. We will sign our boot files with those keys, so that we can then re-enable secure boot.
 
-> As a bonus step, I will also show how you can sign the arch iso with the same secure boot keys, so that if you ever need to fix an issue on your system using the iso, you don't have to turn off secure boot.
+> As a bonus step, I will also show how you can sign the arch iso with the same secure boot keys, so that if you ever need to do any maintainence on your system using the iso, you don't have to turn off secure boot.
 
-<br>
+
+<br><br>
+
 
 ### 2. Internet Connectivity
 
@@ -131,7 +138,9 @@ Check connectivity using:
 ping -c 5 archlinux.org
 ```
 
-<br>
+
+<br><br>
+
 
 ### 3. Check for disks
 Run  the below command to list all the disks available on your system:
@@ -140,19 +149,22 @@ Run  the below command to list all the disks available on your system:
 lsblk
 ```
 
-Find the name of your target disk, in my case it is nvme1n1. <br>
-If you don't have a nvme SSD, your disk may be listed as sda,sdb, etc. <br>
+Find the name of your target disk, in my case it is nvme1n1.
+
+If you don't have a nvme SSD, your disk may be listed as sda,sdb, etc.
+
 To avoid any mistakes during partitioning, especially in a dual boot environment, save the disk name in a variable using:
 
 ```
 DISK=/dev/nvme1n1
 echo $DISK
 ```
-<br>
+
+<br><br>
 
 ### 4. Partition your disk
-In this step, we will create a new GPT table on the disk, and then create 2 partitions - a 1GB EFI partiton (also referred to as the ESP) and a Root partition on the remaining space.
-<br>
+In this step, I will create a new GPT Partition table on the disk, and then create 2 partitions - a 1GB EFI partiton (also referred to as the ESP) and a Root partition on the remaining space.
+
 
 > I am seriously debating the size of the EFI partition. While 512Mb has been more than enough for me is the past, I have seen people recommend 1 GB. 
 I have a 1 Tb SSD on which I will be installing arch, so it's not a big deal for me, and as I plan to use this system long term, I don't want to have to deal with resizing the partition later, so I am making it 1 GB. 
@@ -180,9 +192,11 @@ t   			   ---> Command to change type of partition
 w                  ---> Command to save all the changes we have done till now
 ````
 
-For the first partition, I set the parition type as EFI, and for the second one as Linux Root (x86_64) instead of the default (Linux Filesystem).<br>
+For the first partition, I set the parition type as EFI, and for the second one as Linux Root (x86_64) instead of the default (Linux Filesystem).
 
-This setting of partition type, while technically not necessary, is essential, as this will associate a standard [Partition Type GUID](https://unix.stackexchange.com/questions/121176/whats-the-difference-between-the-partition-guid-code-and-partition-unique-guid) with it.<br>
+
+This setting of partition type, while technically not necessary, is essential, as this will associate a standard [Partition Type GUID](https://unix.stackexchange.com/questions/121176/whats-the-difference-between-the-partition-guid-code-and-partition-unique-guid) with it.
+
 
 This is then used by systemd auto mount (only if using systemd-boot) to recoginze our root partition to decrypt and mount it automatically without a crypttab or fstab file, using a feature called [Discoverable Partitions](https://www.freedesktop.org/software/systemd/man/latest/systemd-gpt-auto-generator.html). 
 
@@ -203,13 +217,15 @@ If your disk name was sda,sdb, you can skip this step. If it was a nvme drive li
 ```
 DISK=/dev/nvme1n1p
 ```
-<br>
+
+<br><br>
 
 
 ### 5. Encryption
 Now we will encrypt the root partition with LUKS2.
+
 > When we use luks to encrypt our drive with a password or a key, what it does is create a header. This header is what actually encrypts and decrypts the drive. 
-The password is saved in a 'keyslot', which unlocks only the header. This is different that plain encryption, where the password is used to encrypt the entire disk. This allows a greater flexibility when creating and managing passwords and keys. We can also have multiple 'keyslots' (i.e. backup keys) created that can unlock the header.
+The password is saved in a 'keyslot', which unlocks only the header. This is different that plain encryption, where the password is used to encrypt the entire disk. This allows a greater flexibility when creating and managing passwords and keys. We can also have multiple 'keyslots' (i.e. backup keys) created that can unlock the header. [Read More](https://en.wikipedia.org/wiki/Linux_Unified_Key_Setup)
 
 > One downside of this approach is that if our header ever gets corrupted, we lose the ability to unlock our entire drive. To account for this, we will also backup the header further in the guide, so that it can be restored if the need arises.
 	
@@ -223,19 +239,22 @@ cryptsetup open --type luks --allow-discards --perf-no_read_workqueue --perf-no_
 ```
 <br>
 
-In the first command we formatted our disk with luks2, it will autogenerate the header and ask you to provide a password to unlock. Make this password strong, or better yet use a [passphrase](https://www.techtarget.com/searchsecurity/definition/passphrase)
+In the first command we formatted our disk with luks2, it will autogenerate the header and ask you to provide a password to unlock. Make this password strong, or better yet use a [passphrase](https://www.techtarget.com/searchsecurity/definition/passphrase).
 	
 In the second command, we open our encrypted drive, and give it the name of 'root'. From here on, our root partition isn't /dev/sda2 or /dev/nvme1n1p2, but rather it's /dev/mapper/root. 
 
-#### <mark style='background-color:rgb(46, 152, 154)'> For simplicity, you can thing of this as a drive inside another drive. The outer drive is the encryption container, and all our content will be on the inner drive. </mark>
+
+> For simplicity, you can thing of this as a drive inside another drive. The outer drive is the encryption container, and all our content will be on the inner drive.
+
+<br>
 
 I also used some additional options while opening the encrypted drive. They do the following:
 
-The *--allow-discards* enables [TRIM](https://wiki.archlinux.org/title/Solid_state_drive#TRIM)  support for a SSD [Read More](https://wiki.archlinux.org/title/Dm-crypt/Specialties#Discard/TRIM_support_for_solid_state_drives_(SSD)).
+1. The *--allow-discards* enables [TRIM](https://wiki.archlinux.org/title/Solid_state_drive#TRIM)  support for a SSD. [Read More](https://wiki.archlinux.org/title/Dm-crypt/Specialties#Discard/TRIM_support_for_solid_state_drives_(SSD))
 	
-The *--perf-no_read_workqueue* and *--perf-no_write_workqueue* increases performance for SSD's [Read More](https://wiki.archlinux.org/title/Dm-crypt/Specialties#Disable_workqueue_for_increased_solid_state_drive_(SSD)_performance)
+2. The *--perf-no_read_workqueue* and *--perf-no_write_workqueue* options increase performance for SSD's [Read More](https://wiki.archlinux.org/title/Dm-crypt/Specialties#Disable_workqueue_for_increased_solid_state_drive_(SSD)_performance)
 
-The *--persistent* option saves these options to the header, so they are always used by default in the future.
+3. The *--persistent* option saves these options to the header, so they are always used by default in the future.
 
 <br>
 You can check the flags that your drive is opened with using:
@@ -246,9 +265,10 @@ You can check the flags that your drive is opened with using:
 cryptsetup luksDump ${DISK}2 | grep Flags
 ```
 
-> I will be relying on systemd-boot to automatically recognize and try to decrypt the root partition. If you decide to use grub, you have to so some more setup in the crypttab file.
+> I will be relying on systemd-boot to automatically recognize and try to decrypt the root partition. If you decide to use grub, you have to so some more setup in the crypttab file. [Read More](https://bbs.archlinux.org/viewtopic.php?id=290148)
 
-<br>
+
+<br><br>
 
 
 ### 6. Format your Partitions
@@ -265,14 +285,14 @@ Check if the partitons are correctly created:
 blkid -o list
 ```
 		
-<br>
+<br><br>
 
-### 6. Btrfs Subvolumes
-> This section is a lot more subjective to the type of installation you prefer. Basically, since we are on a btrfs filesystem, and will be using the rollback functionality on the root subvolume, you can choose which folders on your root won't be rolled back. 
-They can have their own rollback logic created. To do this, they need to be mounted as separate subvolumes. Choosing which folders should be subvolumes has no definitive answer.
+### 7. Btrfs Subvolumes
+> This section is a lot more subjective to the type of installation you prefer. Basically, since we are on a btrfs filesystem, and will be using the rollback functionality on the root subvolume, you can choose which folders on your root won't be rolled back in that transaction. <br>
+They can have their own rollback logic created. To do this, they need to be mounted as separate subvolumes. Choosing which folders should be subvolumes has no correct answer (through there are wrong answers).
 	
 	
-The archinstall script formats the following directories subvolumes, using the '@' naming scheme:
+The archinstall script formats the following directories as subvolumes, using the '@' naming scheme:
 
 /, /home, /var/log, /var/cache/pacman/pkg.
 
@@ -298,7 +318,13 @@ This is the subvolume layout I personally use, and which has worked well for me:
 | @home-snapshots | /home/.snapshots | This subvolume will store snapshots of our @home subvolume (Managed via Snapper). |
 
 
-Run the below commands to create all the subvolumes:
+>I am making the whole of */var* into one subvolume. This is not recommended by arch, as pacman stores it's cache in the */var/cache/pacman* directory. 
+But I am going to configure pacman cache to be in the */tmp* directory, you can read the rationale behind this in this [reddit post](https://www.reddit.com/r/archlinux/comments/1hgbl1k/what_is_varcachepackagepkg_and_why_is_it_so_large/). 
+But essentially, I am not saving any pacman cache, so it doesnt matter to me.
+
+<br>
+
+Run the below commands to mount the root subvolume create all the other subvolumes:
 
 ```
 mount /dev/mapper/root /mnt
@@ -308,17 +334,14 @@ btrfs subvolume list /mnt
 ```
 
 The final commands lists all the subvolumes with their ID.
-Get subvol id of @ and set it as default for the root (eg. 256)
+Get the id of the '@' subvolume (eg. 256) and set it as default for the root:
 
 ```
 btrfs subvolume set-default 256 /mnt
 ```
 
->I am making the whole of */var* into one subvolume. This is not recommended by arch, as pacman stores it's cache in the */var/cache/pacman* directory. 
-But I am going to configure pacman cache to be in the */tmp* directory, you can read the rationale behind this in this [reddit post](https://www.reddit.com/r/archlinux/comments/1hgbl1k/what_is_varcachepackagepkg_and_why_is_it_so_large/). 
-But essentially, I am not saving any pacman cache, so it doesnt matter to me.
 
-Optionally, if you use Thunderbird, Chrome, or Gnupg you can also create the below subvolumes to preserve their data similar to @mozilla above.
+Optionally, if you use Thunderbird, Chrome, or Gnupg you can also create the below subvolumes to preserve their data during rollbacks, similar to @mozilla above.
 | Subvolume Name    | Mount Point |
 | ----------------- | ----------- | 
 | @thunderbird | /home/$USER/.thunderbird |
@@ -329,9 +352,10 @@ Optionally, if you use Thunderbird, Chrome, or Gnupg you can also create the bel
 
 >Btrfs subvolumes can also be created in the future on an operational system, if you need it. 
 		
-<br>
 
-### 7. Mount Options
+<br><br>
+
+### 8. Mount Options
 
 Mount all the subvolumes you created using the below commands:
 
@@ -343,10 +367,15 @@ mount -o subvol=@opt /dev/mapper/root /mnt/opt
 mount -o subvol=@var /dev/mapper/root /mnt/var
 ```
 
-We will mount the @mozilla, @ssh, @snapshots and @home-snapshots subvolumes,  later in the guide.
+[Read more about various BTRFS mount Options.](https://btrfs.readthedocs.io/en/stable/Administration.html#mount-options)
+
+
+I will mount the @mozilla, @ssh, @snapshots and @home-snapshots subvolumes, later in the guide.
+
+<br>
 
 > Once a subvolume is mounted with a set of options, all other subvoumes follow the same options. This is fine mostly as I need the same options everywhere, except in the @var directory, where I want to have the [Nodatacow](https://www.reddit.com/r/btrfs/comments/n6slx3/what_is_the_advantage_of_nodatacowdisabling_cow/) mount option. 
-So instead I will set the attribute +C on the var directory, which accomplishes the same thing.
+So I will set the attribute +C on the var directory, which accomplishes the same thing.
 
 Run this command to disbale CoW in the @var subvolume
 
@@ -354,30 +383,27 @@ Run this command to disbale CoW in the @var subvolume
 chattr +C /mnt/var
 ```
 
-[Read more about various BTRFS mount Options.](https://btrfs.readthedocs.io/en/stable/Administration.html#mount-options)
-<br>
-
-
-Also mount the efi partition using:
+Mount the efi partition using:
 
 ```
 mkdir -p /mnt/efi
 mount -o defaults,fmask=0077,dmask=0077 /dev/{DISK}1 /mnt/efi
 ```
 
-<br>
 
-### 8. Update Mirrors and Pacstrap
+<br><br>
 
-Before we download and install the necessary packages, let us update our Pacman mirrors, for the best download speed, by running the refelctor command. Replace $COUNTRY with your country name:
+### 9. Update Mirrors and Pacstrap
+
+Before we download and install the necessary packages, let us update our Pacman mirrors, for the best download speed, by running the refelctor command. Replace $COUNTRY with your country name (e.g. India):
 
 ```
 reflector --country $COUNTRY --age 24 -l 10 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
 ```
 
-Now, we install the base required packages for an Arch Linux install using the pacstrap command on /mnt where the system root is mounted. Press enter after running these commands:
+Now, I will install the base required packages for an Arch Linux install using the pacstrap command on /mnt where the system root is mounted. Press enter after running these commands:
 
-#### <mark style='background-color:rgb(46, 152, 154)'> If you have an intel cpu, replace amd-ucode with intel-ucode below. </mark>
+#### <mark style='background-color:#3f50b5'> If you have an intel cpu, replace 'amd-ucode' with 'intel-ucode' in the second command. </mark>
 
 	
 ```
@@ -385,9 +411,9 @@ pacman -Sy archlinux-keyring
 pacstrap -K /mnt base base-devel linux linux-firmware amd-ucode cryptsetup btrfs-progs dosfstools posix util-linux git networkmanager sudo openssh vim reflector
 ```
 
-<br>
+<br><br>
 
-### 9. Chroot into the install and do basic setup
+### 10. Chroot into the install and do basic setup
 
 >Chroot or Change-Root makes it so that the system behaves as if you are the root user of the new install. This way you can setup some basic things as the Root user without needing to reference /mnt as the root.
 
@@ -429,37 +455,44 @@ arch-chroot /mnt
 
 3. Pacman
 
-	Improve pacman defaults:
+	1. Improve pacman defaults:
 			
-	```
-	vim /etc/pacman.conf
-	```
-	Under misc option, uncomment(blue)/add(purple) the following lines:
+		```
+		vim /etc/pacman.conf
+		```
+		Under misc option, uncomment the first two lines and add the third line:
 
-	---
-	#### <mark style='background-color:rgb(46, 152, 154)'> Color </mark>
-	#### <mark style='background-color:rgb(46, 152, 154)'> ParallelDownloads = 5 </mark>
-	#### <mark style='background-color:rgb(82, 80, 240)'> ILoveCandy </mark>
-	---
+		<span style="background-color:green;">
+		Color <br>
+		ParallelDownloads = 5 <br>
+		ILoveCandy
+		</span>
 
-	Save and Exit.
+		<br>
 
-	<br>
-	Changing the Pacman cache directory location:
+		Save and Exit.
 
-	```
-	vim /etc/pacman.conf
-	```
+		<br>
 
-	Remove the '#' from the line starting with #CacheDir, and make it look like:
+	2. Changing the Pacman cache directory location:
 
-	---
-	#### <mark style='background-color:rgb(46, 152, 154)'> CacheDir     = /tmp/cache-pacman/pkg/ </mark>
+		```
+		vim /etc/pacman.conf
+		```
+
+		Remove the '#' from the line starting with #CacheDir, and make it look like:
+
+		---
+		<mark style="background-color:green;"> 
+		CacheDir     = /tmp/cache-pacman/pkg/ 
+		</mark>
+		
+		---
+
+
+<br><br>
 	
-	---
-
-	
-### 10. User Management
+### 11. User Management
 1. Set Root Password
 	```
 	passwd
@@ -468,7 +501,7 @@ arch-chroot /mnt
 2. Create your user and set a password.
 
 	```
-	useradd -G wheel -m $USER
+	useradd -G wheel,video,audio,optical,storage,users -m $USER
 	passwd $USER
 	```
 
@@ -481,29 +514,35 @@ arch-chroot /mnt
 	Uncomment by removing the '#' of the **FIRST** line starting with '# %wheel'.
 
 	---
-	#### <mark style='background-color:rgb(46, 152, 154)'> %wheel ALL=(ALL:ALL) ALL </mark>
+	<mark style="background-color: green;">
+	%wheel ALL=(ALL:ALL) ALL 
+	</mark>
 
 	---
 
 	Fun Easter egg:
-	Add the following line to the /etc/sudoers file using 'visudo' to see a funny message everytime you enter a wrong password:
+	Add the following line to the **/etc/sudoers** file using *visudo* to see a funny message everytime you enter a wrong password:
 
-	```
+	---
+	<mark style="background-color: green;">
 	Defaults insults
-	```
+	</mark>
+	
+	---
 
-	But don't have too much fun with it, if you enter a wrong password 3 times, you will not be able to use the sudo command for some time. 
+	But don't have too much fun with it, if you enter a wrong password 3 times, you will not be able to use the sudo command for some time (10 mins normally). 
 
 
 4. Mount 2 of the remaining 4 subvolumes, (replace $USER with whatever username you chose):
 	```
 	mkdir /home/$USER/{.mozilla,.ssh}
-	mount -o subvol=@mozilla /dev/mapper/root /mnt/home/$USER/.mozilla
-	mount -o subvol=@ssh /dev/mapper/root /mnt/home/$USER/.ssh
+	mount -o subvol=@mozilla /dev/mapper/root /home/$USER/.mozilla
+	mount -o subvol=@ssh /dev/mapper/root /home/$USER/.ssh
 	```
-<br>
 
-### 11. Generate fstab
+<br><br>
+
+### 12. Generate fstab
 
 > Fstab is a file referenced by the system during boot to mount your drives/partitions to the correct location. Since we have already mounted our drives, we will use the **genfstab** utility to output the fstab file with the options we chose earlier, and save it, so that in the future these options are used by default.
 
@@ -518,17 +557,68 @@ genfstab -U / >> /etc/fstab
 
 Discoverable partitons is a cool feature which can automount your drives, and can fully be used in this install, as I will be using systemd-boot as my bootloader.
 However, I will still manually define my mount points in fstab. This is because:
-	a. I don't see an option of defining my mount options, and I don't want them to be the system defaults
-	b. I will still have to mount my btrfs subvolumes manually, so why not do it all myself?
-	c. I don't like the abstraction, I prefer to setup my system myself.
+1. I don't have an option of defining my mount options, and I don't want them to be the system defaults
+2. I will still have to mount my btrfs subvolumes manually, so why not do it all myself?
+3. I don't like the abstraction, I prefer to setup my system myself.
 </details>
 
-<br>	
+<br><br>
 
-### 12. Generate Unified Kernel Images
+### 13. Swap on Zram
+For swap, I will use swap on zram instead of a separate swap partition. [Read More](https://wiki.archlinux.org/title/Zram)
+
+How it works is, when there are files on your RAM that are not actively being used, they can be compressed stored on Zram. While Zram uses part of RAM to store data, it compresses the data very efficiently so overall we get more performance. It's better than swap on a disk as RAM is faster than a disk.
+
+To create a Zram device, and use it as the swap, I will use a udev rule as documented on the wiki. Run the below 3 commands: 
+1. Enable to Zram module to load on boot
+	```
+	echo 'zram' > /etc/modules-load.d/zram.conf
+	```
+
+2. Create a udev rule to specify zram parameters (I have set size as 16G, adjust it to your liking):
+	```
+	echo 'ACTION=="add", KERNEL=="zram0", ATTR{initstate}=="0", ATTR{comp_algorithm}="zstd", ATTR{disksize}="16G", RUN="/usr/bin/mkswap -U clear %N", TAG+="systemd"' > /etc/udev/rules.d/99-zram.rules
+	```
+
+	Don't create zram greater than twice the size of your physical RAM (Max expected compression ratio is 2:1, so more space will be wasted.)
+
+3. Modify the fstab file by adding this line at the very start:
+	```
+	/dev/zram0 none swap defaults,discard,pri=100 0 0
+	```
+	
+4. Optimize Zram performance (optional) [Read More](https://wiki.archlinux.org/title/Zram#Optimizing_swap_on_zram)
+	```
+	echo 'vm.swappiness = 180' > /etc/sysctl.d/99-vm-zram-parameters.conf
+	echo 'vm.watermark_boost_factor = 0' >> /etc/sysctl.d/99-vm-zram-parameters.conf
+	echo 'vm.watermark_scale_factor = 125' >> /etc/sysctl.d/99-vm-zram-parameters.conf
+	echo 'vm.page-cluster = 00' >> /etc/sysctl.d/99-vm-zram-parameters.conf
+	```
+
+
+
+Note: If using Zram, disable [Zswap](https://wiki.archlinux.org/title/Zswap#Toggling_zswap) for better performance. It is enabled in kernels like linux-lts.
+
+```
+echo 'quiet re zswap.enabled=0' > /etc/kernel/cmdline
+```
+
+
+<br>
+
+[Suspend and Hibernate](https://wiki.archlinux.org/title/Power_management/Suspend_and_hibernate#):
+Without going into too many details, these capabilites are built into the kernel and should be available to use directly. If you want to use hibernate, you need a separate swap partition (Swap on Zram can't be used) and need to do some additional setup which is explained in the link above. 
+
+For my AMD system, with a B650 motherboard, I can see that the hardware supports S2Idle(Suspend) method aka saving data on RAM while powering all other components off. I am fine with this method.
+
+I did have troubles waking my system back up after suspending it (It seems to be motherboard specific). On reading the wiki, I can across this [solution](https://wiki.archlinux.org/title/Power_management/Suspend_and_hibernate#PC_will_not_wake_from_sleep_on_A520I_and_B550I_motherboards), which worked perfectly.
+
+<br><br>
+
+### 14. Generate Unified Kernel Images
 [Unified Kernel Images](https://wiki.archlinux.org/title/Unified_kernel_image) is a concept of combining the kernel, microcode, and other binaries needed during boot, and generating a single efi file to boot from. This helps in maintainence also helps with secure boot management.
 
-While this may sound difficult, it's been made very easy by various tools. I will use the [mkinitcpio](https://wiki.archlinux.org/title/Mkinitcpio) in this instance. By just changing a few Configuration options, it will be set generate the UKI's automatically when any of the component files are updates.
+While this may sound difficult, it's been made very easy by various tools. I will use [mkinitcpio](https://wiki.archlinux.org/title/Mkinitcpio) in this guide. By just changing a few Configuration options, it will be set up to generate the UKI's automatically when any of the component files are updated.
 
 Run the below commands:
 ```
@@ -540,7 +630,10 @@ vim /etc/mkinitcpio.conf
 Edit the line starting with *HOOKS* in mkinitcpio.conf to look like this:
 
 ---
-#### <mark style='background-color:rgb(46, 152, 154)'> HOOKS=(base systemd autodetect modconf kms keyboard sd-vconsole sd-encrypt block filesystems fsck) </mark>
+<mark style="background-color:green"> 
+HOOKS=(base systemd autodetect modconf kms keyboard sd-vconsole sd-encrypt block filesystems fsck) 
+</mark>
+
 ---
 
 Now we need to edit the linux kernel preset file. (If you have installed additional kernels, you need to update their preset files as well.)
@@ -551,29 +644,22 @@ vim /etc/mkinitcpio.d/linux.preset
 Comment the line starting with default_image and fallback_image and uncomment the lines starting with ALL_config, default_uki, default_options and fallback_uki.
 Make the file look like this:
 
-```
-All_config="/etc/mkinitcpio.conf"
-
-ALL_kver="/boot/vmlinuz-linux"
-
-PRESETS=('default', 'fallback')
-
-#default_config="/etc/mkinitcpio.conf"
-
-#default_image="/boot/initramfs-linux.img"
-
-default_uki="/efi/EFI/Linux/arch-linux.efi"
-
-default_options="--splash /usr/share/systemd/bootctl/splash-arch.bmp"
-
-#fallback_config="/etc/mkinitcpio.conf"
-
-#fallback_image="/boot/initramfs-linux-fallback.img"
-
-fallback_uki="/efi/EFI/Linux/arch-linux-fallback.efi"
-
+---
+<mark style="background-color:green"> 
+All_config="/etc/mkinitcpio.conf" <br>
+ALL_kver="/boot/vmlinuz-linux" <br>
+PRESETS=('default', 'fallback') <br>
+#default_config="/etc/mkinitcpio.conf" <br>
+#default_image="/boot/initramfs-linux.img" <br>
+default_uki="/efi/EFI/Linux/arch-linux.efi" <br>
+default_options="--splash /usr/share/systemd/bootctl/splash-arch.bmp" <br>
+#fallback_config="/etc/mkinitcpio.conf" <br>
+#fallback_image="/boot/initramfs-linux-fallback.img" <br>
+fallback_uki="/efi/EFI/Linux/arch-linux-fallback.efi" <br>
 fallback_options="-S autodetect"
-```
+</mark>
+
+---
 
 
 Run below command to generate the unified kernel images:
@@ -581,7 +667,9 @@ Run below command to generate the unified kernel images:
 mkinitcpio -P
 ```
 
-### 13. Enable services
+<br><br>
+
+### 15. Enable services
 
 Using the below commands, I will enable networking using systemd-resolve for dns resolution and NetworkManager to manage networks. An alternative to NetworkManager is systemd-networkd, but I will mask it, as I prefer NetworkManager. I will also enable reflector to update pacman mirrors on every boot, and sshd to enable ssh.
 
@@ -593,9 +681,10 @@ systemctl enable sshd
 ```
 [Read more about you can configure Reflector](https://ostechnix.com/retrieve-latest-mirror-list-using-reflector-arch-linux/).
 
-<br>
 
-### 14. Bootloader Installation
+
+
+### 16. Bootloader Installation
 In this step, I will install the systemd-boot bootloader on the /efi partition. Then I will reboot to the Motherboard settings:
 
 ```
@@ -644,14 +733,14 @@ Boot into your system, and login as your user.
 				
 	```
 	sudo pacman -S --needed base-devel
-	git clone https://aur.archlinux.org/paru.git
+	git clone --depth 1 https://aur.archlinux.org/paru.git
 	cd paru
 	makepkg -si
 	```
 	
 	>After this step, you will be able to use the command *paru -S \<package-name>* to install a package from the[AUR](https://aur.archlinux.org/). Be very careful installing packages from here.
 
-3. Shell and Fonts
+3. Shell and Fonts (Optional)
 
 	```
 	sudo pacman -S zsh ttf-jetbrains-mono-nerd
@@ -664,7 +753,7 @@ Boot into your system, and login as your user.
 	sudo pacman -S pipewire pipewire-pulse pavucontrol
 	```
 
-	>These won't be really relevant until we install Hyprland.
+	>These won't be really relevant until we install a DE.
 
 5. Utilities
 			
@@ -693,39 +782,23 @@ Boot into your system, and login as your user.
 	Uncomment the below lines by removing the '#'
 	
 	---
-	[multilib]
-
+	<mark style="background-color: green;">
+	[multilib]<br>
 	Include = /etc/pacman.d/mirrorlist
-	
+	</mark>
+
 	---
+
+	
 
 	Then run:
 
 	```
 	sudo pacman -Sy
 	```
+<br><br>
 
-
-### 2. Install Hyprland and other helpful gui applications
-	
-```
-sudo pacman -S hyprland firefox dolphin kitty wofi waybar hyprpolkitagent grim kitty qt5-wayland qt6-wayland slurp xdg-desktop-portal-hyprland xdg-utils xorg-xwayland vlc
-
-paru -S wlogout
-```
-
-Set this line in your hyprland config:
-
----
-
-exec-once = systemctl --user start hyprpolkitagent
-
----
-
-https://wiki.archlinux.org/title/XDG_MIME_Applications
-
-
-### 3. Install rEFInd
+### 2. Install rEFInd
 Refind is a boot manager. Simply put, when starting your PC, it will allow you to choose between Windows and Linux. It can also be themed to make the boot process look pretty.
 ```
 sudo pacman -S refind
@@ -740,11 +813,10 @@ sudo refind-install
 - I want the main linux bootloader to do just that, and not have other fancy features, improving realiability.
 </details>
 
-[Refind BTRFS](https://github.com/Venom1991/refind-btrfs) will be configured later
 
+<br><br>
 
-
-### 4. Setup Secure Boot
+### 3. Setup Secure Boot
 We will generate our own secure boot keys, enroll them in our Motherboard firmware, and sign our kernel modules and other efi binaries with them. There's an amazing tool known as [sbctl](https://github.com/Foxboron/sbctl) which does most of the heavy lifting for us.
 
 ```
@@ -795,8 +867,7 @@ Now go to your motherboard's firmware setup and enable secure boot. Check if it 
 
 
 
-### 5. Improve Encryption Setup 
-[Reference Guide](https://0pointer.net/blog/unlocking-luks2-volumes-with-tpm2-fido2-pkcs11-security-hardware-on-systemd-248.html)
+### 4. Improve Encryption Setup 
 
 1. Backup LUKS Headers
 
@@ -859,7 +930,7 @@ Now go to your motherboard's firmware setup and enable secure boot. Check if it 
 	Be careful not to remove all the keys as this might render your drive unlockable. (You can recover from such an accident if you have the Luks Header Backed up)
 
 
-3. Setup auto unlocking via TPM
+3. Setup auto unlocking via TPM [Read More](https://0pointer.net/blog/unlocking-luks2-volumes-with-tpm2-fido2-pkcs11-security-hardware-on-systemd-248.html)
 
 	We can enroll our TPM2 chip (present in most modern PC's) on the LUKS volume with the help of [Systemd-cryptenroll](https://wiki.archlinux.org/title/Systemd-cryptenroll) to have the TPM2 then automatically unlock the drive during boot.
 
@@ -900,124 +971,79 @@ Now go to your motherboard's firmware setup and enable secure boot. Check if it 
 
 
 
-### 6. Swap and Hibernation/Suspend
-For swap, I will use swap on zram instead of a separate disk partition [Read More](https://wiki.archlinux.org/title/Zram).
-
-In simple words, when there are files on your RAM that are not actively being used, they can be compressed stored on Zram. While Zram uses RAM, it compresses the data very efficiently so overall we get more performance. It's better than swap on a disk as RAM is faster than a disk.
-
-To create a Zram device, and use it as the swap, I will use a udev rule as documented on the wiki. Run the below 3 commands as root: 
-1. Enable to Zram module to load on boot
-	```
-	echo 'zram' > /etc/modules-load.d/zram.conf
-	```
-
-2. Create a udev rule to specify zram parameters (I have set size as 16G, adjust it to your liking):
-	```
-	echo 'ACTION=="add", KERNEL=="zram0", ATTR{initstate}=="0", ATTR{comp_algorithm}="zstd", ATTR{disksize}="16G", RUN="/usr/bin/mkswap -U clear %N", TAG+="systemd"' > /etc/udev/rules.d/99-zram.rules
-	```
-
-	Don't create zram greater than twice the size of your physical RAM (Max expected compression ratio is 2:1, so more space will be wasted.)
-
-3. Modify the fstab file by adding this line at the very start:
-	```
-	/dev/zram0 none swap defaults,discard,pri=100 0 0
-	```
-	
-4. Optimize Zram performance (optional) [Read More](https://wiki.archlinux.org/title/Zram#Optimizing_swap_on_zram)
-	```
-	echo 'vm.swappiness = 180' > /etc/sysctl.d/99-vm-zram-parameters.conf
-	echo 'vm.watermark_boost_factor = 0' >> /etc/sysctl.d/99-vm-zram-parameters.conf
-	echo 'vm.watermark_scale_factor = 125' >> /etc/sysctl.d/99-vm-zram-parameters.conf
-	echo 'vm.page-cluster = 00' >> /etc/sysctl.d/99-vm-zram-parameters.conf
-	```
-
-Now Reboot your system. Then run lsblk and you should see a zram0 device of 16Gb mounted as Swap.
 
 
-Note: If using Zram, disable [Zswap](https://wiki.archlinux.org/title/Zswap#Toggling_zswap) for better performance. It is enabled in kernels like linux-lts.
-
-To check if it's enabled, run:
-
-```
-lsmod | grep zswap
-```
-
-If it is enabled, disable it permanently by running the following commands as the root user:
-
-```
-su
-echo 'quiet re zswap.enabled=0' > /etc/kernel/cmdline
-mkinitcpio -P
-```
-
-
-<br>
-
-[Suspend and Hibernate](https://wiki.archlinux.org/title/Power_management/Suspend_and_hibernate#):
-Without going into too many details, these capabilites are built into the kernel and should be available to use directly. If you want to use hibernate, you need a separate swap partition (Zram method can't be used) and need to do some additional setup which is explained in the link above. 
-
-For my AMD system, with a B650 motherboard, I can see that the hardware supports S2Idle(Suspend) aka saving data on RAM while powering all other components off. I am fine with this method.
-
-I did have troubles waking my system back up after suspending it. On reading the wiki, I can across this [solution](https://wiki.archlinux.org/title/Power_management/Suspend_and_hibernate#PC_will_not_wake_from_sleep_on_A520I_and_B550I_motherboards), which worked perfectly. 
-
-
-
-### 7. Security
+### 4. Security
 To start with this section, first read the [arch wiki article on security](https://wiki.archlinux.org/title/Security).
 
 Another good [article on hardening arch linux](https://vez.mrsk.me/linux-hardening).
 
-There's a lot you can do in terms of hardening your system, here are some things I do that you can as well:
+There's a lot you can do in terms of hardening your system, here are some of the simple things:
 
 1. Choose a secure password
-2. SSH: If you have a SSH server running, and exposed to the internet, it's not a bad idea to follow [this guide](https://www.ibm.com/docs/en/aspera-fasp-proxy/1.4?topic=appendices-securing-your-ssh-server)
-   1. Remove Root login
-   2. Change port
+   
+2. SSH: If you have a SSH server running, and exposed to the internet, it's not a bad idea to follow [this guide](https://www.ibm.com/docs/en/aspera-fasp-proxy/1.4?topic=appendices-securing-your-ssh-server) that will help you to:
+   1. Disable SSH Root login
+   2. Change the default ssh port
    3. Disable password login and only use public keys
+
 3. Firewall - UFW
    Here are some commands to use ufw and setup a basic firewall:
    
    ```
    sudo pacman -S ufw
-   sudo ufw allow ssh
+   sudo ufw limit ssh
    sudo ufw default deny incoming
    sudo ufw enable
    ```
 
-   This should be enough for a basic desktop. If you run any servers/application, you may have to whitelist those ports.
+   >This should be enough for a basic desktop. If you run any servers/application, you may have to whitelist those ports.
    Note that if you run any docker containers, it bypasses ufw rules, so keep it in mind. [Read More](https://docs.docker.com/engine/network/packet-filtering-firewalls/#docker-and-ufw)
 
-4. AppArmor/Firejail/Bubblewrap -> While these are recommneded to be used, I have not personally used them, so I can't give any recommendations. If you think you need them, read up on it and use it. I will also use it and maybe update the guide with my learnings.
+4. AppArmor/Firejail/Bubblewrap -> While these are recommneded to be used, I have not personally used them, so I can't give any recommendations right now. If you think you need them, read up on it and use it. I will also use it and maybe update the guide with my learnings.
 
-### 8. System Maintainence
+### 7. System Maintainence
 
 
 1. [Maintainence](https://gist.github.com/MaxXor/ba1665f47d56c24018a943bb114640d7)
 
 
-2. Btrfs filesystem
-	1. [Defragmentation](https://wiki.archlinux.org/title/Btrfs#Defragmentation)
-	2. TRIM
-	3. Scrub
-	4. Balance
+2. SSD
+   
+	[Read More about TRIM](https://wiki.archlinux.org/title/Solid_state_drive#TRIM)
+
+	Check if you target SSD supports TRIM using
+	```
+	lsblk --discard
+	```
+
+	Check the values of DISC-GRAN (discard granularity) and DISC-MAX (discard max bytes) columns. Non-zero values indicate TRIM support.
+
+	I will use periodic trim (on a timer).
+
+	```
+	sudo systemctl enable fstrim.service fstrim.timer
+	```
+
+	This will perform the TRIM operation weekly on all supported SSD's.
 
 
 ### 9. Refind BTRFS
-1. Snapshot Rollbacks
+
+<mark style="background-color: #f44336;"> This doesn't work currently due to the use of unified kernel images. You can choose to skip this step, as it has no utility currently. I am looking for an alternative or a fix to this.</mark>
 ```
 paru -S refind-btrfs
 sudo systemctl enable --now refind-btrfs
 ```
-	1. [Snapshot Rollbacks]
-	2. [Snapshot Booting](https://wiki.archlinux.org/title/Btrfs#Booting_into_snapshots)
+
 
 ### 10. Snapper and snapshots
 > Alright, all the efforts we put into btrfs and subvolumes, will help us now.
 
 By now, you must be aware of the btrfs snapshot feature. There is a tool developed by OpenSuse know as [snapper](https://github.com/openSUSE/snapper) which is a helper application for this purpose. 
-Using snapper, we will create a config for our root subvolume (@) containing most of our system data, and another for the home subvolume(@home), which contains most of our user data. Then we can setup snapper to create and manager snapshots of them, to safeguard and if necessary, rollback this data (Remember, the other subvolumes we created are exempt from this). 
+Using snapper, we will create a config for our root subvolume (@) that contains most of our system data, and another for the home subvolume(@home), which contains most of our user data. Then we can setup snapper to create and manager snapshots of them, to safeguard and if necessary, rollback this data (Remember, the other subvolumes we created are exempt from this). 
 Snapper can also do automatic snapshots on a schedule, and there's a pacman hook known as snap-pac that can create snapshots whenever we use pacman to install/upgrade our system.
-There's also a gui application btrfs-assistant that can help with managing snapshots:
+There's also a gui application btrfs-assistant that can help with managing snapshots. Install them using:
 
 ```
 sudo pacman -S snapper snap-pac
@@ -1026,61 +1052,96 @@ paru -S btrfs-assistant
 
 Run the below commands in order to:
 1. Create Snapper Configurations for the root and home subvolumes.
-```
-sudo snapper -c root create-config /
-sudo snapper -c home create-config /home
-sudo snapper list-configs
-```
-After this, unmount and delete the /.snapshots, and /home/.snapshots  subvolumes, and instead mount @snapshots and @home-snapshots in their place:
-```
-```
+	```
+	sudo snapper -c root create-config /
+	sudo snapper -c home create-config /home
+	sudo snapper list-configs
+	```
+	After this, unmount and delete the /.snapshots, and /home/.snapshots  subvolumes, and instead mount @snapshots and @home-snapshots in their place:
+	```
+	sudo mount -o subvol=@snapshots /dev/mapper/root /.snapshots
+	sudo mount -o subvol=@home-snapshots /dev/mapper/root /home/.snapshots
+	```
 
-Add these entries to your fstab
+	Add these entries to your fstab. (Refer the fstab file to see how other snapshots are mounted and use the same options, only change the 'subvol=' option and mount point.)
 
-2. Enable your user to work with them without sudo privileges
-```
-sudo snapper -c root set-config ALLOW_USERS=$USER SYNC_ACL=yes
-sudo snapper -c home set-config ALLOW_USERS=$USER SYNC_ACL=yes
-```
+2. Enable your user to work with snapshots without sudo privileges:
+	```
+	sudo snapper -c root set-config ALLOW_USERS=$USER SYNC_ACL=yes
+	sudo snapper -c home set-config ALLOW_USERS=$USER SYNC_ACL=yes
+	```
 
-3. Setup Automatic Creation and Cleanup of snapshots
-```
-sudo systemctl daemon-reload
-sudo mount -va
-```
+3. Disable Indexing of snapshots to improve performance.
+	```
+	echo 'PRUNENAMES = ".snapshots"' | sudo tee -a /etc/updatedb.conf
+	```
 
-4. Disable Indexing of snapshots to improve performance.
-```
-echo 'PRUNENAMES = ".snapshots"' | sudo tee -a /etc/updatedb.conf
-```
-
-Since we installed snap-pac, from now on, whenever we install any update/package using pacman, it will create a pre-post snapshots for that transaction.
-So if something get's messed up during an update, you can rollback the changes to the pre snapshote and be good to go. (remember to run mkinitcpio after a rollback if the update included any kernel/microcode changes)
+	Since we installed snap-pac, from now on, whenever we install any update/package using pacman, it will create a pre-post snapshots for that transaction.
+	So if something get's messed up during an update, you can rollback the changes to the pre snapshote and be good to go. (remember to run mkinitcpio after a rollback if the update included any kernel/microcode changes)
 
 
-5. Auto Snapshots Timer and Cleanup
-By default, both snapshot configs will have automatic creation of periodic snapshtos enabled. You can control this behaviour. I will disable auto snapshots for home, and start the associated services:
-```
-sudo snapper -c home set-config TIMELINE_CREATE=no
-sudo systemctl enable --now snapper-timeline.timer
-sudo systemctl enable --now snapper-cleanup.timer
-```
+4. Auto Snapshots Timer and Cleanup
+	By default, both snapshot configs will have automatic creation of periodic snapshtos enabled. You can control this behaviour. I will disable auto snapshots for home, and start the associated services:
+	```
+	sudo snapper -c home set-config TIMELINE_CREATE=no
+	sudo systemctl enable --now snapper-timeline.timer
+	sudo systemctl enable --now snapper-cleanup.timer
+	```
 
-The default timeline is once per day, you can control this behaviour by editing the file */etc/snapper/configs/root*. You can specify the number and age of snapshots for creation and cleanup.
+	The default timeline is once per day, you can control this behaviour by editing the file */etc/snapper/configs/root*. You can specify the number and age of snapshots for creation and cleanup.
 
-You can also take a manual snapshot of root at any point using:
-```
-snapper -c root create --description <Description>
-```
+	You can also take a manual snapshot of root at any point using:
+	```
+	snapper -c root create --description <Description>
+	```
 
-I will generally take a manual snapshot after I have setup my system, and then anytime later when I feel I have a stable system with a lot more changes than the pervious snapshot.
+	I will generally take a manual snapshot after I have setup my system, and then anytime later when I feel I have a stable system with a lot more changes than the pervious snapshot.
 
-If you instead want to take a pre-post snapshot after running a command, use:
-```
-snapper -c root create --command <command-to-run>
-```
+	If you instead want to take a pre-post snapshot after running a command, use:
+	```
+	snapper -c root create --command <command-to-run>
+	```
 
-6. Restoring Snapshots: You can refer to this [link](https://sysguides.com/install-fedora-with-snapshot-and-rollback-support#6-7-snapper-tests) for some practise on how to use snapshots.
+5. Working with Snapper:
+
+	1. List all snapshots
+		```
+		snapper -c <config> ls
+		```
+
+		If config is not specified, it's root by default eg.:
+		```
+		snapper ls
+		```
+
+	2. Create a new Snapshot Manually
+		```
+		snapper -c <config> create --description <desc>
+		```
+
+		eg.:
+		```
+		snapper -c root create --description "A new snapshot"
+		```
+
+	3. Delete a snapshot
+		```
+		snapper -c <config> delete <snapshot-number>
+		```
+
+		You can also delete a range of snapshots using:
+
+		```
+		snapper -c <config> delete <snapshot-number-start>-<snapshot-number-end>
+		```
+
+	4. Undo changes made between snapshots
+		If you have 2 snapshots 2 and 3, and you want to go back to snapshot 12 (revert changes made during creation of 13), you can do this using:
+		```
+		sudo snapper undochange 2..3
+		```
+
+   You can refer to this [link](https://sysguides.com/install-fedora-with-snapshot-and-rollback-support#6-7-snapper-tests) for some more practise on how to use snapshots.
 
 
 > At this point we have a system with a good base and security features while also offering style(kinda) and convinience. You can stop using the guide at this point and make most of the further decisions on your own as to what type of theming and workflow you prefer. I will document my own rice and dotfiles in another Repo. Meanwhile, there are more things that can be done with Arch linux, refer the next section for that.
