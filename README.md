@@ -1144,9 +1144,9 @@ Run the below commands in order to:
    You can refer to this [link](https://sysguides.com/install-fedora-with-snapshot-and-rollback-support#6-7-snapper-tests) for some more practice on how to use snapshots.
 
 
-> At this point we have a system with a good base and security features while also offering style(kinda) and convinience. 
+> At this point we have a system with a lot of modern features and a good base install, while also having the capability to rollback in case of any issues. 
 
-> You can stop using the guide at this point and make most of the further decisions on your own as to what type of Desktop Environment, Apps, Theming and workflow you prefer. I will document my own rice and dotfiles in another Repo.
+> You can stop using the guide now and make most of the further decisions on your own as to what type of Desktop Environment, Apps, Theming and Workflow you prefer. I will document my own rice and dotfiles in another Repo (Hyprland).
 ---
 ---
 
@@ -1155,20 +1155,52 @@ Run the below commands in order to:
 > I will document some more stuff here, which might be interesting to you, but also can be safely ignored if you wish so.
 
 1. Gaming
-   1. Steam + Gamescope
-   
+   1. Steam + Gamescope  
    2. Heroic Games Launcher
    3. Controller Support
    4. [Gamemode](https://github.com/FeralInteractive/gamemode#requesting-gamemode)
+
 2. Virtualization
-3. HDR
-4. Bluetooth
-5. Stay upto date with arch news
-6. [Power Management](https://wiki.archlinux.org/title/Power_management#)
-7. VS Code
-8. Clipboard manager
-9.  [CPU Frequency Scaling](https://wiki.archlinux.org/title/CPU_frequency_scaling)
-10. [fwupd](https://github.com/fwupd/fwupd)
-11. Enable https://wiki.archlinux.org/title/Pkgstats to help the community
-12. Extra kernels
-13. Sign an Arch iso with your keys
+
+
+3. [Bluetooth](https://wiki.archlinux.org/title/Bluetooth)
+	The initial setup needed to have bluetooth working is:
+	```
+	sudo pacman -S bluez bluez-utils
+	sudo systemctl enable bluetooth
+	```
+
+	After this you can use a tui or gui app (documented in the link above)
+
+4. Stay upto date with arch news
+	Due to the nature of arch being a rolling release, I would highly recommend regularly reading up on the lastest news, announcements, and other events.
+	1. Subscribe to their mailing list [from here](https://lists.archlinux.org/mailman3/lists/)
+	2. Visit the [Homepage](https://archlinux.org/)
+	3. Use a tool like [Informant](https://github.com/bradford-smith94/informant) which will stop you from upgrading if there are any unread news items. Install using:
+		```
+		paru -S informant
+		```
+
+		```
+		informant check -> Auto run with pacman, fetches latest news
+		informant list -> Gives a summary of latest news
+		informant read -> Marks unread news as read, post which you can upgrade using pacman.
+		```
+
+5. [Power Management](https://wiki.archlinux.org/title/Power_management#)
+
+6. VS Code
+	Install the microsoft provide version using:
+	```
+	paru -S visual-studio-code-vin
+	```
+
+7.  [CPU Frequency Scaling](https://wiki.archlinux.org/title/CPU_frequency_scaling)
+
+8.  [fwupd](https://github.com/fwupd/fwupd)
+
+9.  Enable https://wiki.archlinux.org/title/Pkgstats to help the community
+
+10. Extra kernels
+
+11. Sign an Arch iso with your keys
