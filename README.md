@@ -408,7 +408,7 @@ Now, I will install the base required packages for an Arch Linux install using t
 	
 ```
 pacman -Sy archlinux-keyring
-pacstrap -K /mnt base base-devel linux linux-firmware amd-ucode cryptsetup btrfs-progs dosfstools posix util-linux git networkmanager sudo openssh vim reflector
+pacstrap -K /mnt base base-devel linux linux-firmware amd-ucode cryptsetup btrfs-progs dosfstools posix util-linux git networkmanager sudo openssh vim reflector locate
 ```
 
 <br><br>
@@ -1004,8 +1004,8 @@ There's a lot you can do in terms of hardening your system, here are some of the
 
 ### 7. System Maintainence
 
+1. General Maintainence:
 
-1. [Maintainence](https://gist.github.com/MaxXor/ba1665f47d56c24018a943bb114640d7)
 
 
 2. SSD
@@ -1141,30 +1141,34 @@ Run the below commands in order to:
 		sudo snapper undochange 2..3
 		```
 
-   You can refer to this [link](https://sysguides.com/install-fedora-with-snapshot-and-rollback-support#6-7-snapper-tests) for some more practise on how to use snapshots.
+   You can refer to this [link](https://sysguides.com/install-fedora-with-snapshot-and-rollback-support#6-7-snapper-tests) for some more practice on how to use snapshots.
 
 
-> At this point we have a system with a good base and security features while also offering style(kinda) and convinience. You can stop using the guide at this point and make most of the further decisions on your own as to what type of theming and workflow you prefer. I will document my own rice and dotfiles in another Repo. Meanwhile, there are more things that can be done with Arch linux, refer the next section for that.
+> At this point we have a system with a good base and security features while also offering style(kinda) and convinience. 
 
+> You can stop using the guide at this point and make most of the further decisions on your own as to what type of Desktop Environment, Apps, Theming and workflow you prefer. I will document my own rice and dotfiles in another Repo.
 ---
 ---
 
 # 5. Extras
-> At this point, you are pretty much set up. I will document some more stuff here, which might be interesting to you, but also can be safely ignored if you wish so.
+
+> I will document some more stuff here, which might be interesting to you, but also can be safely ignored if you wish so.
+
 1. Gaming
    1. Steam + Gamescope
+   
    2. Heroic Games Launcher
    3. Controller Support
+   4. [Gamemode](https://github.com/FeralInteractive/gamemode#requesting-gamemode)
 2. Virtualization
 3. HDR
 4. Bluetooth
-5. AppArmor
-6. Stay upto date with arch news
-7. [Power Management](https://wiki.archlinux.org/title/Power_management#)
-8. VS Code
-9. Clipboard manager
-10. [CPU Frequency Scaling](https://wiki.archlinux.org/title/CPU_frequency_scaling)
-11. [fwupd](https://github.com/fwupd/fwupd)
-12. Enable https://wiki.archlinux.org/title/Pkgstats to help the community
-13. Extra kernels
-14. Sign an Arch iso with your keys
+5. Stay upto date with arch news
+6. [Power Management](https://wiki.archlinux.org/title/Power_management#)
+7. VS Code
+8. Clipboard manager
+9.  [CPU Frequency Scaling](https://wiki.archlinux.org/title/CPU_frequency_scaling)
+10. [fwupd](https://github.com/fwupd/fwupd)
+11. Enable https://wiki.archlinux.org/title/Pkgstats to help the community
+12. Extra kernels
+13. Sign an Arch iso with your keys
