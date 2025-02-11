@@ -395,10 +395,10 @@ mount -o defaults,fmask=0077,dmask=0077 /dev/{DISK}1 /mnt/efi
 
 ### 9. Update Mirrors and Pacstrap
 
-Before we download and install the necessary packages, let us update our Pacman mirrors, for the best download speed, by running the refelctor command. Replace $COUNTRY with your country name (e.g. India):
+Before we download and install the necessary packages, let us update our Pacman mirrors, for the best download speed, by running the reflector command. Replace $COUNTRY with your country name (e.g. India):
 
 ```
-reflector --country $COUNTRY --age 24 -l 10 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
+reflector --country $COUNTRY --age 24 --latest 10 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
 ```
 
 Now, I will install the base required packages for an Arch Linux install using the pacstrap command on /mnt where the system root is mounted. Press enter after running these commands:
@@ -408,7 +408,7 @@ Now, I will install the base required packages for an Arch Linux install using t
 	
 ```
 pacman -Sy archlinux-keyring
-pacstrap -K /mnt base base-devel linux linux-firmware amd-ucode cryptsetup btrfs-progs dosfstools posix util-linux git networkmanager sudo openssh vim reflector locate
+pacstrap -K /mnt base base-devel linux linux-firmware amd-ucode cryptsetup btrfs-progs dosfstools posix util-linux networkmanager sudo openssh vim reflector rsync arch-install-scripts xdg-user-dirs 
 ```
 
 <br><br>
@@ -493,16 +493,17 @@ arch-chroot /mnt
 <br><br>
 	
 ### 11. User Management
+
 1. Set Root Password
 	```
 	passwd
 	```
 
-2. Create your user and set a password.
+2. Create your user (sabino in this case) and set a password.
 
 	```
-	useradd -G wheel,video,audio,optical,storage,users -m $USER
-	passwd $USER
+	useradd -G wheel,video,audio,optical,storage,users -m sabino
+	passwd sabino
 	```
 
 3. Allow your user to run sudo commands with a password
@@ -533,22 +534,28 @@ arch-chroot /mnt
 	But don't have too much fun with it, if you enter a wrong password 3 times, you will not be able to use the sudo command for some time (10 mins normally). 
 
 
-4. Mount 2 of the remaining 4 subvolumes, (replace $USER with whatever username you chose):
+4. Mount 2 of the remaining 4 subvolumes, (replace sabino with whatever username you chose):
 	```
-	mkdir /home/$USER/{.mozilla,.ssh}
-	mount -o subvol=@mozilla /dev/mapper/root /home/$USER/.mozilla
-	mount -o subvol=@ssh /dev/mapper/root /home/$USER/.ssh
+	mkdir /home/sabino/{.mozilla,.ssh}
+	mount -o subvol=@mozilla /dev/mapper/root /home/sabino/.mozilla
+	mount -o subvol=@ssh /dev/mapper/root /home/sabino/.ssh
+	chown -R sabino:sabino /home/sabino/*
+	```
+5. Create Default Home folder:
+	```
+	xdg-user-dirs-update
 	```
 
 <br><br>
 
 ### 12. Generate fstab
 
-> Fstab is a file referenced by the system during boot to mount your drives/partitions to the correct location. Since we have already mounted our drives, we will use the **genfstab** utility to output the fstab file with the options we chose earlier, and save it, so that in the future these options are used by default.
+> Fstab is a file referenced by the system during boot to mount your drives/partitions to the correct location. 
+Since we have already mounted our drives, we will use the **genfstab** utility to output the fstab file with the options we chose earlier, and save it, so that in the future these options are used by default.
 
 ```
-mkdir /etc
-touch /etc/fstab
+mkdir /etc                       -> It might already exist
+touch /etc/fstab				 -> It might already exist
 genfstab -U / >> /etc/fstab
 ```
 
@@ -600,7 +607,7 @@ To create a Zram device, and use it as the swap, I will use a udev rule as docum
 Note: If using Zram, disable [Zswap](https://wiki.archlinux.org/title/Zswap#Toggling_zswap) for better performance. It is enabled in kernels like linux-lts.
 
 ```
-echo 'quiet re zswap.enabled=0' > /etc/kernel/cmdline
+echo 'zswap.enabled=0' >> /etc/kernel/cmdline
 ```
 
 
@@ -622,7 +629,7 @@ While this may sound difficult, it's been made very easy by various tools. I wil
 
 Run the below commands:
 ```
-echo "quiet rw" >/etc/kernel/cmdline
+echo "quiet rw" >> /etc/kernel/cmdline
 mkdir -p /efi/EFI/Linux
 vim /etc/mkinitcpio.conf
 ```
@@ -667,20 +674,46 @@ Run below command to generate the unified kernel images:
 mkinitcpio -P
 ```
 
+If you get an error specifying a particular file is missing during the above command, create that file, and then rerun the above command.
+eg. I got told that the file **/etc/vsoncole.conf** was missing. So I created it and reran the command:
+```
+touch /etc/vconsole.conf
+mkinitcpio -P
+```
+
 <br><br>
 
 ### 15. Enable services
 
-Using the below commands, I will enable networking using systemd-resolve for dns resolution and NetworkManager to manage networks. An alternative to NetworkManager is systemd-networkd, but I will mask it, as I prefer NetworkManager. I will also enable reflector to update pacman mirrors on every boot, and sshd to enable ssh.
+Using the below commands, I will enable networking using systemd-resolve for dns resolution and NetworkManager to manage networks. An alternative to NetworkManager is systemd-networkd, but I will mask it, as I prefer NetworkManager. I will also enable reflector to update pacman mirrors weekly, and sshd to enable ssh.
 
 ```
 systemctl enable systemd-resolved NetworkManager
 systemctl mask systemd-networkd
-systemctl enable reflector
+systemctl enable reflector.timer
 systemctl enable sshd
 ```
-[Read more about you can configure Reflector](https://ostechnix.com/retrieve-latest-mirror-list-using-reflector-arch-linux/).
+For reflector, you should edit the file /etc/xdg/reflector/reflector.conf, and specify option specific to you. eg.:
 
+```
+sudo vim /etc/xdg/reflector/reflector.conf
+```
+
+My file looks like this:
+
+---
+<mark style="background-color:green">
+--save /etc/pacman.d/mirrorlist<br>
+--protocol https<br>
+--country India<br>
+--latest 10<br>
+--sort rate<br>
+--age 24
+</mark>
+
+---
+
+[Read more about you can configure Reflector](https://ostechnix.com/retrieve-latest-mirror-list-using-reflector-arch-linux/).
 
 
 
@@ -707,6 +740,16 @@ You will be asked to enter the disk encryption password, post which you can logi
 
 # 4. Post-Install
 > While we have a working system now, we are missing a lot of utilities which make it actually usuable. In this section, I will walk through installing and configuring them.
+
+Before we start, we need to connect to the network (wifi). If you have ethernet, you can skip this. For wifi users, who are using Network Manager, run:
+```
+nmcli radio wifi on
+nmcli dev wifi list
+sudo nmcli dev wifi connect <wifi-name> --ask
+```
+
+substitue \<wifi-name> for wifi name and enter password to connect.
+
 
 Boot into your system, and login as your user.
 ### 1. Update Pacman and install some essential packages:
@@ -737,6 +780,11 @@ Boot into your system, and login as your user.
 	cd paru
 	makepkg -si
 	```
+
+	This command will take a long time and you will have to enter your password a couple of time. Be patient. Once it has finished successfully, you can cleanup the downloaded paru folder:
+	```
+	rm -rf paru
+	```
 	
 	>After this step, you will be able to use the command *paru -S \<package-name>* to install a package from the[AUR](https://aur.archlinux.org/). Be very careful installing packages from here.
 
@@ -744,7 +792,6 @@ Boot into your system, and login as your user.
 
 	```
 	sudo pacman -S zsh ttf-jetbrains-mono-nerd
-	chsh /usr/bin/zsh
 	```
 
 4. Audio
@@ -758,7 +805,7 @@ Boot into your system, and login as your user.
 5. Utilities
 			
 	```
-	sudo pacman -S unzip man-db man-pages wget htop tpm2-tss
+	sudo pacman -S git locate udisks2 unzip man-db man-pages wget htop
 	```
 
 
@@ -766,9 +813,12 @@ Boot into your system, and login as your user.
 	
 	```
 	sudo pacman -S flatpak
+	flatpak install flatseal
 	```
 
-	You can search for applications you need on [Flathub](https://flathub.org/).
+	>Flatseal is a GUI app that can help to manage the permissions of flatpaks installed. It can also help to enable Wayland support for apps like Obsidian, in case you want to use fractional scaling.
+
+	You can search for any other applications you need on [Flathub](https://flathub.org/).
 
    
 7. [Optional Repositories](https://wiki.archlinux.org/title/Official_repositories#)
@@ -825,7 +875,7 @@ sudo pacman -S sbctl
 
 Once sbctl is downloaded, you need to make sure your motherboard is in setup mode, so that you can enroll your keys into it. This is done typically by clearing out the existing secure boot keys in the motherboard settings. Look up how to do this for your brand of motherboard.
 
->Many motherboards have the ability to restore the keys that you removed (I can confirm this for Asrock). Also if you ever update the firmware of the motherboard, you might have to enroll your own keys again.
+<mark style="background-color: red" > Many motherboards have the ability to restore the keys that you removed (I can confirm this for Asrock). Also if you ever update the firmware of the motherboard, you might have to enroll your own keys again. </mark>
 
 Check if motherboard is in Setup mode from the output of:
 
@@ -853,8 +903,8 @@ We will then use *sbctl sign -s \<filename>* to sign them.
 
 ```
 sudo sbctl verify
-sudo sbctl sign -s /efi/EFI/Linux/arch-linux.efi
-sudo sbctl sign -s /efi/EFI/Linux/arch-linux-fallback.efi
+sudo sbctl sign -s /efi/EFI/linux/arch-linux.efi
+sudo sbctl sign -s /efi/EFI/linux/arch-linux-fallback.efi
 sudo sbctl sign -s /efi/EFI/BOOT/BOOTX64.EFI
 sudo sbctl sign -s /efi/EFI/systemd/systemd-bootx64.efi
 sudo sbctl sign -s /efi/EFI/refind/drivers_x64/btrfs_x64.efi
@@ -864,7 +914,6 @@ sudo sbctl sign -s /efi/EFI/refind/refind_x64.efi
 You might have to sign more files, if you have installed additional kernels. Use the *sbctl verify* command to check if any more files need signing.
 
 Now go to your motherboard's firmware setup and enable secure boot. Check if it boots properly or not.
-
 
 
 ### 4. Improve Encryption Setup 
@@ -957,7 +1006,9 @@ Now go to your motherboard's firmware setup and enable secure boot. Check if it 
 	This makes it so that if I upgrade my Motherboard firmware, hardware components or turn off secure boot the TPM won't be able to auto unlock my drive. You can use more PCR's if you wish to.
 
 	The following enrolls the TPM into the Luks header, while also binding it to the PCR's 0, 1, and 7:
-		
+	
+	<mark style="backgroung-color: red;"> Note: Run the below command, after enabling secure boot, otherwise it will get bound to 'Secure Boot Disabled' state of PCR 7 </mark>
+
 	```
 	sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=0+1+7  /dev/gpt-auto-root-luks
 	```
@@ -973,7 +1024,7 @@ Now go to your motherboard's firmware setup and enable secure boot. Check if it 
 
 
 
-### 4. Security
+### 5. Security
 To start with this section, first read the [arch wiki article on security](https://wiki.archlinux.org/title/Security).
 
 Another good [article on hardening arch linux](https://vez.mrsk.me/linux-hardening).
@@ -1002,33 +1053,9 @@ There's a lot you can do in terms of hardening your system, here are some of the
 
 4. AppArmor/Firejail/Bubblewrap -> While these are recommneded to be used, I have not personally used them, so I can't give any recommendations right now. If you think you need them, read up on it and use it. I will also use it and maybe update the guide with my learnings.
 
-### 7. System Maintainence
-
-1. General Maintainence:
 
 
-
-2. SSD
-   
-	[Read More about TRIM](https://wiki.archlinux.org/title/Solid_state_drive#TRIM)
-
-	Check if you target SSD supports TRIM using
-	```
-	lsblk --discard
-	```
-
-	Check the values of DISC-GRAN (discard granularity) and DISC-MAX (discard max bytes) columns. Non-zero values indicate TRIM support.
-
-	I will use periodic trim (on a timer).
-
-	```
-	sudo systemctl enable fstrim.service fstrim.timer
-	```
-
-	This will perform the TRIM operation weekly on all supported SSD's.
-
-
-### 9. Refind BTRFS
+### 6. Refind BTRFS
 
 <mark style="background-color: #f44336;"> This doesn't work currently due to the use of unified kernel images. You can choose to skip this step, as it has no utility currently. I am looking for an alternative or a fix to this.</mark>
 ```
@@ -1037,7 +1064,7 @@ sudo systemctl enable --now refind-btrfs
 ```
 
 
-### 10. Snapper and snapshots
+### 7. Snapper and snapshots
 > Alright, all the efforts we put into btrfs and subvolumes, will help us now.
 
 By now, you must be aware of the btrfs snapshot feature. There is a tool developed by OpenSuse know as [snapper](https://github.com/openSUSE/snapper) which is a helper application for this purpose. 
@@ -1057,13 +1084,20 @@ Run the below commands in order to:
 	sudo snapper -c home create-config /home
 	sudo snapper list-configs
 	```
-	After this, unmount and delete the /.snapshots, and /home/.snapshots  subvolumes, and instead mount @snapshots and @home-snapshots in their place:
+	After this, delete the /.snapshots, and /home/.snapshots  subvolumes, and instead mount @snapshots and @home-snapshots in their place:
 	```
+	sudo btrfs subvolume delete /.snapshots
+	sudo btrfs subvolume delete /home/.snapshots
+	sudo mkdir /.snapshots
+	sudo mkdir /home/.snapshots
 	sudo mount -o subvol=@snapshots /dev/mapper/root /.snapshots
 	sudo mount -o subvol=@home-snapshots /dev/mapper/root /home/.snapshots
 	```
 
-	Add these entries to your fstab. (Refer the fstab file to see how other snapshots are mounted and use the same options, only change the 'subvol=' option and mount point.)
+	Add these entries to your fstab.
+	```
+	sudo genfstab -U / | grep snapshots >> /etc/fstab
+	```
 
 2. Enable your user to work with snapshots without sudo privileges:
 	```
@@ -1154,16 +1188,88 @@ Run the below commands in order to:
 
 > I will document some more stuff here, which might be interesting to you, but also can be safely ignored if you wish so.
 
-1. Gaming
-   1. Steam + Gamescope  
-   2. Heroic Games Launcher
-   3. Controller Support
-   4. [Gamemode](https://github.com/FeralInteractive/gamemode#requesting-gamemode)
+1. SSD Maintainence
 
-2. Virtualization
+	You need to periodically run the TRIM service on your SSD, which improves it's life. [Read More about TRIM](https://wiki.archlinux.org/title/Solid_state_drive#TRIM)
+
+	Check if you target SSD supports TRIM using
+	```
+	lsblk --discard
+	```
+
+	Check the values of DISC-GRAN (discard granularity) and DISC-MAX (discard max bytes) columns. Non-zero values indicate TRIM support.
+
+	I will use periodic trim (on a timer).
+
+	```
+	sudo systemctl enable fstrim.timer
+	```
+
+	This will perform the TRIM operation weekly on all supported SSD's.
+
+	To manuall run fstrim, type:
+	```
+	sudo systemctl start fstrim.service
+	```
 
 
-3. [Bluetooth](https://wiki.archlinux.org/title/Bluetooth)
+2. General Maintainence:
+	
+	[Read the full article from the wiki](https://wiki.archlinux.org/title/System_maintenance)
+
+	1. Check for failed systemd services
+		```
+		systemctl --failed
+		```
+	2. Check all the logs generated during boot (latest to oldest). Errors will be listed in red:
+		```
+		sudo journalctl -exb
+		```
+	3. System Upgrades
+		Upgrade the system regularly for the latest patches and bugfixes. If you are using paru, you can also run the below command to update all pacman and AUR packages.
+		
+		```
+		sudo pacman -Syu
+		```
+		
+		OR
+
+		```
+		paru
+		```
+
+		Offcourse, read up on release notes and any news before upgrading.
+
+	4. Stay upto date with arch news
+		Due to the nature of arch being a rolling release, I would highly recommend regularly reading up on the lastest news, announcements, and other events.
+
+		1. Subscribe to their mailing list [from here](https://lists.archlinux.org/mailman3/lists/)
+
+		2. Visit the [Homepage](https://archlinux.org/)
+
+		3. Use a tool like [Informant](https://github.com/bradford-smith94/informant) which will stop you from upgrading if there are any unread news items. Install using:
+			```
+			paru -S informant
+			```
+
+			```
+			informant check -> Auto run with pacman, fetches latest news
+			informant list -> Gives a summary of latest news
+			informant read -> Marks unread news as read, post which you can upgrade using pacman.
+			```
+
+3.  Help the community
+	You can send an anonymized list of all installed packages, the architecture and the mirror you are using as feedback to the arch project.
+
+	This is done by using [pkgstats](https://wiki.archlinux.org/title/Pkgstats).
+	```
+	sudo pacman -S pkgstats
+	```
+
+	After this, it will automatically enable a timer that will run the service weekly.
+
+
+4. [Bluetooth](https://wiki.archlinux.org/title/Bluetooth)
 	The initial setup needed to have bluetooth working is:
 	```
 	sudo pacman -S bluez bluez-utils
@@ -1172,35 +1278,35 @@ Run the below commands in order to:
 
 	After this you can use a tui or gui app (documented in the link above)
 
-4. Stay upto date with arch news
-	Due to the nature of arch being a rolling release, I would highly recommend regularly reading up on the lastest news, announcements, and other events.
-	1. Subscribe to their mailing list [from here](https://lists.archlinux.org/mailman3/lists/)
-	2. Visit the [Homepage](https://archlinux.org/)
-	3. Use a tool like [Informant](https://github.com/bradford-smith94/informant) which will stop you from upgrading if there are any unread news items. Install using:
-		```
-		paru -S informant
-		```
 
-		```
-		informant check -> Auto run with pacman, fetches latest news
-		informant list -> Gives a summary of latest news
-		informant read -> Marks unread news as read, post which you can upgrade using pacman.
-		```
-
-5. [Power Management](https://wiki.archlinux.org/title/Power_management#)
-
-6. VS Code
+5. VS Code
 	Install the microsoft provide version using:
 	```
 	paru -S visual-studio-code-vin
 	```
 
-7.  [CPU Frequency Scaling](https://wiki.archlinux.org/title/CPU_frequency_scaling)
+	If using wayland, run the below command to enable wayland and fractional scaling support:
+	```
+	echo '--ozone-platform=wayland' > ~/.config/code-flags.conf
+	```
 
-8.  [fwupd](https://github.com/fwupd/fwupd)
+6. Gaming
+   1. Steam + Gamescope  
+   2. Heroic Games Launcher
+   3. Controller Support
+   4. [Gamemode](https://github.com/FeralInteractive/gamemode#requesting-gamemode)
 
-9.  Enable https://wiki.archlinux.org/title/Pkgstats to help the community
+7. Virtualization
 
-10. Extra kernels
+8. [Power Management](https://wiki.archlinux.org/title/Power_management#)
 
-11. Sign an Arch iso with your keys
+
+9.  [CPU Frequency Scaling](https://wiki.archlinux.org/title/CPU_frequency_scaling)
+
+10.  Firmware Upgrade
+	Using [fwupd](https://github.com/fwupd/fwupd), you can upgrade the firmware of your hardware devices. 
+
+
+11. Extra kernels
+
+12. Sign an Arch iso with your keys
