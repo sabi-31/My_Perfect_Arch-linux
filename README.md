@@ -1290,23 +1290,66 @@ Run the below commands in order to:
 	echo '--ozone-platform=wayland' > ~/.config/code-flags.conf
 	```
 
-6. Gaming
+6. Gaming - TBD
    1. Steam + Gamescope  
    2. Heroic Games Launcher
    3. Controller Support
    4. [Gamemode](https://github.com/FeralInteractive/gamemode#requesting-gamemode)
 
-7. Virtualization
+7. Virtualization - TBD
 
 8. [Power Management](https://wiki.archlinux.org/title/Power_management#)
 
+	You can use a tool like [powertop](https://github.com/fenrus75/powertop) to diagnose and fix any power consumption issues
 
-9.  [CPU Frequency Scaling](https://wiki.archlinux.org/title/CPU_frequency_scaling)
+	
+	You can manage wifi and bluetooth using rfkill:
+	```
+	rfkill block bluetooth
+	rfkill block wifi
+	```
+
+	and enable it using 'rfkill unblock wifi'
+
+
+9.  [CPU Frequency Scaling](https://wiki.archlinux.org/title/CPU_frequency_scaling) - TBD
 
 10.  Firmware Upgrade
 	Using [fwupd](https://github.com/fwupd/fwupd), you can upgrade the firmware of your hardware devices. 
+	This downloads updates from [Linux Vendor Firmware Service](https://fwupd.org/). 
+	Manufactures submit updates there directly so it's safe and reliable to use this service to update your firmware.
+
+	Run a check for all devices detected:
+	```
+	fwupdmgr get-devices
+	```
+
+	Download metadata regarding firmware
+	```
+	fwupdmgr refresh
+	```
+
+	List devices for which upgrades are available
+	```
+	fwupdmgr get-updates
+	```
+
+	Apply available updates
+	```
+	fwupdmgr update
+	```
 
 
-11. Extra kernels
+---
+---
 
-12. Sign an Arch iso with your keys
+# BONUS 
+
+### Sign an Arch iso with your keys [Read More](https://wiki.archlinux.org/title/Unified_Extensible_Firmware_Interface/Secure_Boot#ISO_repacking)
+Once you have enabled secure boot after registering your own keys, you cannot boot from the same iso you used to install arch. 
+You might want to do this in case of any potential issues where you want to boot from an iso. There are also many other utilities that you may wanna boot from.
+In this scenario, you can either disable secure boot, or sign such utilities with your own keys tool. 
+
+All of this can be done using the sbctl tool.
+
+
