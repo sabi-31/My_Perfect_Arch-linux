@@ -12,19 +12,21 @@ Table of Contents
 # 1. Introduction and Credits
 > I started this project as a personal reference document, but ended up formatting it as a guide since I think it will be helpful to many people out there who want the same type of install. 
 I will walk through and explain the rationale behind all the steps from beginning to end, towards installing what is (subjectively) a perfect arch linux install.
-Please note that this IS NOT meant to be a replacement of the official arch installation documentation, it's just how I did it.
+
+>Please note that this IS NOT meant to be a replacement of the official arch installation documentation, it's just how I did it.
 If you haven't already, read the [official guide](https://wiki.archlinux.org/title/Installation_guide) and try that out in a VM and understand what is happening. 
 Then if you want a system like me, follow this guide for reference.
 
 ### Main Features of this install:
 
-1. BTRFS Filesystem with Snapper for snapshots and rollbacks.
-2. Secure Boot
-3. Unified Kernel Images
-4. Full Root Filesystem Encryption + Auto TPM unlocking.
-5. Dual Boot (Existing Windows Install on a separate drive).
-6. ~~Snapshot Booting with rEFInd btrfs.~~
-7. System Maintainence and Best Practises.
+1. Full Root Filesystem Encryption + Auto TPM unlocking.
+2. BTRFS Filesystem
+3. Snapper snapshots and rollbacks
+4. Secure Boot
+5. Unified Kernel Images
+6. Dual Boot (Existing Windows Install on a separate drive).
+7. ~~Snapshot Booting with rEFInd btrfs.~~
+8. System Maintainence and Best Practises.
 
 
 ### I have tested it on the following hardware:
@@ -33,7 +35,7 @@ Then if you want a system like me, follow this guide for reference.
 2. AMD GPU (7900 GRE)
 3. Asrock Motherboard with UEFI support.
 
-All the steps mentioned here should regardless work for you. If you have an INTEL CPU and/or a NVIDIA GPU, there are some minor differences, and I will point them out.
+All the steps mentioned here should regardless work for you on an x86-64 machine.. If you have an INTEL CPU and/or a NVIDIA GPU, there are some minor differences, and I will point them out.
 
 
 #### <mark style='background-color: #f44336;'> While I will try to explain what I'm doing here and why, this is not a noob friendly guide. You need to have an understanding of basic concepts of linux and know your way around the terminal. </mark>
@@ -56,6 +58,7 @@ This is all the preparation you need to do before attempting the install.
 ### 1. Download the arch iso
 
 Either use the BitTorrent download (needs a bit-torrent client installed on your machine) or choose your nearest **https** mirror from the [Arch Download Page](https://archlinux.org/download). 
+
 <br><br>
 
 
@@ -67,6 +70,7 @@ gpg --keyserver-options auto-key-retrieve --verify archlinux-<version>-x86_64.is
 ```	
 
 Where archlinux-\<version\>-x86_64.iso.sig is the signature file, and the final option is the iso itself.
+
 <br><br>
 
 
@@ -115,7 +119,7 @@ Plug in your usb with the Arch ISO, reboot to your PC's Motherboard settings (lo
 
 ### 2. Internet Connectivity
 
-If you have a wired ethernet connection, just check for connectivity using the **ping** shown below command and proceed to step 3.<br>
+If you have a wired ethernet connection, just check for connectivity using the **ping** command shown below and proceed to step 3.<br>
 
 If you're on wifi, run the below commands sequentially to connect to your network:
 
@@ -324,7 +328,7 @@ But essentially, I am not saving any pacman cache, so it doesnt matter to me.
 
 <br>
 
-Run the below commands to mount the root subvolume create all the other subvolumes:
+Run the below commands to mount the root subvolume and create all the other subvolumes:
 
 ```
 mount /dev/mapper/root /mnt
@@ -410,6 +414,8 @@ Now, I will install the base required packages for an Arch Linux install using t
 pacman -Sy archlinux-keyring
 pacstrap -K /mnt base base-devel linux linux-firmware amd-ucode cryptsetup btrfs-progs dosfstools posix util-linux networkmanager sudo openssh vim reflector rsync arch-install-scripts xdg-user-dirs 
 ```
+> Some of these packages are mandatory, others are essential. You can lookup what they do in case you're curious.
+
 
 <br><br>
 
@@ -462,11 +468,14 @@ arch-chroot /mnt
 		```
 		Under misc option, uncomment the first two lines and add the third line:
 
+		---
 		<span style="background-color:green;">
 		Color <br>
 		ParallelDownloads = 5 <br>
 		ILoveCandy
 		</span>
+
+		---
 
 		<br>
 
@@ -499,20 +508,20 @@ arch-chroot /mnt
 	passwd
 	```
 
-2. Create your user (sabino in this case) and set a password.
+2. Create a new user with preferred username (sabino in this case) and set a password.
 
 	```
 	useradd -G wheel,video,audio,optical,storage,users -m sabino
 	passwd sabino
 	```
 
-3. Allow your user to run sudo commands with a password
+3. Allow the new user to run sudo commands with a password
 	
 	```
 	visudo
 	```
 
-	Uncomment by removing the '#' of the **FIRST** line starting with '# %wheel'.
+	Uncomment by removing the '#' of the line starting with '# %wheel', below the comment saying "Uncomment to allow members of group wheel to execute any command"
 
 	---
 	<mark style="background-color: green;">
@@ -541,7 +550,7 @@ arch-chroot /mnt
 	mount -o subvol=@ssh /dev/mapper/root /home/sabino/.ssh
 	chown -R sabino:sabino /home/sabino/*
 	```
-5. Create Default Home folder:
+5. Create Default Home folders:
 	```
 	xdg-user-dirs-update
 	```
@@ -604,7 +613,7 @@ To create a Zram device, and use it as the swap, I will use a udev rule as docum
 
 
 
-Note: If using Zram, disable [Zswap](https://wiki.archlinux.org/title/Zswap#Toggling_zswap) for better performance. It is enabled in kernels like linux-lts.
+<span style="background-color: #3f50b5"> Note: If using Zram, disable [Zswap](https://wiki.archlinux.org/title/Zswap#Toggling_zswap) for better performance. It is enabled in kernels like linux-lts.</span>
 
 ```
 echo 'zswap.enabled=0' >> /etc/kernel/cmdline
@@ -727,7 +736,7 @@ exit
 systemctl reboot --firmware-setup
 ```
 
-In the Firmware setup menu, select the entry for Arch/The Disk as the First Priority Entry and Save the settings.
+In the Firmware setup menu, select the entry for Arch/The Disk as the **First Priority Entry** and Save the settings.
 You will be asked to enter the disk encryption password, post which you can login and use the your new Arch System.
 
 
@@ -741,6 +750,8 @@ You will be asked to enter the disk encryption password, post which you can logi
 # 4. Post-Install
 > While we have a working system now, we are missing a lot of utilities which make it actually usuable. In this section, I will walk through installing and configuring them.
 
+Boot into your system, and login as your user.
+
 Before we start, we need to connect to the network (wifi). If you have ethernet, you can skip this. For wifi users, who are using Network Manager, run:
 ```
 nmcli radio wifi on
@@ -751,7 +762,6 @@ sudo nmcli dev wifi connect <wifi-name> --ask
 substitue \<wifi-name> for wifi name and enter password to connect.
 
 
-Boot into your system, and login as your user.
 ### 1. Update Pacman and install some essential packages:
 1. Drivers and Codecs
 		
@@ -854,10 +864,13 @@ Refind is a boot manager. Simply put, when starting your PC, it will allow you t
 sudo pacman -S refind
 sudo refind-install
 ```
+>Once you run the second command, refind should set itself as the primary boot option. If it doesn't, you can change it in the motherboard settings. But because of this, you should now see multiple options during boot, including the ability to choose between windows and arch. For Arch, I recommend using the systemd-boot option, instead of the kernel option. You can hide any options you don't want using the 'Escape' Key.
 
 <details>
 <summary>Why do I need both rEFInd and systemd-boot? </summary>
 
+- GUI Features
+- Multi OS Support
 - rEFInd supports Btrfs Snapshot Booting
 - It is customizable
 - I want the main linux bootloader to do just that, and not have other fancy features, improving realiability.
@@ -1033,12 +1046,15 @@ There's a lot you can do in terms of hardening your system, here are some of the
 
 1. Choose a secure password
    
-2. SSH: If you have a SSH server running, and exposed to the internet, it's not a bad idea to follow [this guide](https://www.ibm.com/docs/en/aspera-fasp-proxy/1.4?topic=appendices-securing-your-ssh-server) that will help you to:
+2. SSH: 
+
+	If you have a SSH server running, and exposed to the internet, it's not a bad idea to follow [this guide](https://www.ibm.com/docs/en/aspera-fasp-proxy/1.4?topic=appendices-securing-your-ssh-server) that will help you to:
    1. Disable SSH Root login
    2. Change the default ssh port
    3. Disable password login and only use public keys
 
 3. Firewall - UFW
+
    Here are some commands to use ufw and setup a basic firewall:
    
    ```
@@ -1051,7 +1067,13 @@ There's a lot you can do in terms of hardening your system, here are some of the
    >This should be enough for a basic desktop. If you run any servers/application, you may have to whitelist those ports.
    Note that if you run any docker containers, it bypasses ufw rules, so keep it in mind. [Read More](https://docs.docker.com/engine/network/packet-filtering-firewalls/#docker-and-ufw)
 
-4. AppArmor/Firejail/Bubblewrap -> While these are recommneded to be used, I have not personally used them, so I can't give any recommendations right now. If you think you need them, read up on it and use it. I will also use it and maybe update the guide with my learnings.
+4. Motherboard password
+
+	If your motherboard settings are changed, anyone can disable secure boot/ load another os. It's highly recommended to password protect your motherboard settings. Most modern motherboards give you the option. Lookup how to do it for your particular brand. Also make sure to note down this password, if you forget it, it's gonna be a pain to recover.
+
+5. AppArmor/Firejail/Bubblewrap:
+
+	While these are recommneded to be used, I have not personally used them, so I can't give any recommendations right now. If you think you need them, read up on it and use it. I will also use it and maybe update the guide with my learnings.
 
 
 
@@ -1068,9 +1090,13 @@ sudo systemctl enable --now refind-btrfs
 > Alright, all the efforts we put into btrfs and subvolumes, will help us now.
 
 By now, you must be aware of the btrfs snapshot feature. There is a tool developed by OpenSuse know as [snapper](https://github.com/openSUSE/snapper) which is a helper application for this purpose. 
-Using snapper, we will create a config for our root subvolume (@) that contains most of our system data, and another for the home subvolume(@home), which contains most of our user data. Then we can setup snapper to create and manager snapshots of them, to safeguard and if necessary, rollback this data (Remember, the other subvolumes we created are exempt from this). 
+Using snapper, we will create a config for our root subvolume (@) that contains most of our system data, and another for the home subvolume(@home), which contains most of our user data. 
+
+Then we can setup snapper to create and manager snapshots of them, to safeguard and if necessary, rollback this data (Remember, the other subvolumes we created are exempt from this). 
 Snapper can also do automatic snapshots on a schedule, and there's a pacman hook known as snap-pac that can create snapshots whenever we use pacman to install/upgrade our system.
-There's also a gui application btrfs-assistant that can help with managing snapshots. Install them using:
+There's also a gui application btrfs-assistant that can help with managing snapshots. 
+
+Install them using:
 
 ```
 sudo pacman -S snapper snap-pac
@@ -1110,8 +1136,8 @@ Run the below commands in order to:
 	echo 'PRUNENAMES = ".snapshots"' | sudo tee -a /etc/updatedb.conf
 	```
 
-	Since we installed snap-pac, from now on, whenever we install any update/package using pacman, it will create a pre-post snapshots for that transaction.
-	So if something get's messed up during an update, you can rollback the changes to the pre snapshote and be good to go. (remember to run mkinitcpio after a rollback if the update included any kernel/microcode changes)
+	>Since we installed snap-pac, from now on, whenever we install any update/package using pacman, it will create a pre-post snapshots for that transaction.
+	So if something get's messed up during an update, you can rollback the changes to the pre snapshot and be good to go. (remember to run *mkinitcpio -P* again after a rollback if the update included any kernel/microcode changes).
 
 
 4. Auto Snapshots Timer and Cleanup
@@ -1259,6 +1285,7 @@ Run the below commands in order to:
 			```
 
 3.  Help the community
+
 	You can send an anonymized list of all installed packages, the architecture and the mirror you are using as feedback to the arch project.
 
 	This is done by using [pkgstats](https://wiki.archlinux.org/title/Pkgstats).
@@ -1270,6 +1297,7 @@ Run the below commands in order to:
 
 
 4. [Bluetooth](https://wiki.archlinux.org/title/Bluetooth)
+
 	The initial setup needed to have bluetooth working is:
 	```
 	sudo pacman -S bluez bluez-utils
@@ -1280,6 +1308,7 @@ Run the below commands in order to:
 
 
 5. VS Code
+
 	Install the microsoft provide version using:
 	```
 	paru -S visual-studio-code-vin
@@ -1290,13 +1319,14 @@ Run the below commands in order to:
 	echo '--ozone-platform=wayland' > ~/.config/code-flags.conf
 	```
 
-6. Gaming - TBD
-   1. Steam + Gamescope  
-   2. Heroic Games Launcher
-   3. Controller Support
-   4. [Gamemode](https://github.com/FeralInteractive/gamemode#requesting-gamemode)
+6. Gaming - WIP
+   1. Steam 
+   2. Gamescope  
+   3. Heroic Games Launcher
+   4. Controller Support
+   5. [Gamemode](https://github.com/FeralInteractive/gamemode#requesting-gamemode)
 
-7. Virtualization - TBD
+7. Virtualization - WIP
 
 8. [Power Management](https://wiki.archlinux.org/title/Power_management#)
 
@@ -1312,9 +1342,10 @@ Run the below commands in order to:
 	and enable it using 'rfkill unblock wifi'
 
 
-9.  [CPU Frequency Scaling](https://wiki.archlinux.org/title/CPU_frequency_scaling) - TBD
+9. [CPU Frequency Scaling](https://wiki.archlinux.org/title/CPU_frequency_scaling) - WIP
 
-10.  Firmware Upgrade
+10. Firmware Upgrade
+
 	Using [fwupd](https://github.com/fwupd/fwupd), you can upgrade the firmware of your hardware devices. 
 	This downloads updates from [Linux Vendor Firmware Service](https://fwupd.org/). 
 	Manufactures submit updates there directly so it's safe and reliable to use this service to update your firmware.
@@ -1345,11 +1376,45 @@ Run the below commands in order to:
 
 # BONUS 
 
-### Sign an Arch iso with your keys [Read More](https://wiki.archlinux.org/title/Unified_Extensible_Firmware_Interface/Secure_Boot#ISO_repacking)
+### Sign and Repack an Arch iso with your own keys [Read More](https://wiki.archlinux.org/title/Unified_Extensible_Firmware_Interface/Secure_Boot#ISO_repacking)
+
 Once you have enabled secure boot after registering your own keys, you cannot boot from the same iso you used to install arch. 
-You might want to do this in case of any potential issues where you want to boot from an iso. There are also many other utilities that you may wanna boot from.
-In this scenario, you can either disable secure boot, or sign such utilities with your own keys tool. 
+You might want to do this in case you want to fix any potential issues with your system. 
 
-All of this can be done using the sbctl tool.
+>You can offocurse disable secure boot to boot from the iso, but I prefer not to.
 
+All of the below commands are run assuming you're in a folder which has the **archlinux.iso** in it. Also you need to have setup sbctl and generated and registered you own keys, as documented above.
 
+1. Install the necessary packages
+	```
+	sudo pacman -S libisoburn mtools
+	```
+
+2. Extract files from the iso
+	```
+	osirrox -indev archlinux.iso -extract_boot_images ./ -cpx /arch/boot/x86_64/vmlinuz-linux /EFI/BOOT/BOOTx64.EFI /EFI/BOOT/BOOTIA32.EFI /shellx64.efi /shellia32.efi ./
+	```
+3. The extracted file are read-only be default, make the editable using:
+	```
+	chmod +w BOOTx64.EFI BOOTIA32.EFI shellx64.efi shellia32.efi vmlinuz-linux
+	```
+4. Sign the below files using your own keys generated by SBCTL
+	```
+	sudo sbctl sign BOOTx64.EFI
+	sudo sbctl sign BOOTIA32.EFI
+	sudo sbctl sign shellx64.efi
+	sudo sbctl sign shellia32.efi
+	sudo sbctl sign vmlinuz-linux
+	```
+5. Copy the signed binaries to eltorito_img2_uefi.img
+	```
+	mcopy -D oO -i eltorito_img2_uefi.img vmlinuz-linux ::/arch/boot/x86_64/vmlinuz-linux
+	mcopy -D oO -i eltorito_img2_uefi.img BOOTx64.EFI BOOTIA32.EFI ::/EFI/BOOT/
+	mcopy -D oO -i eltorito_img2_uefi.img shellx64.efi shellia32.efi ::/
+	```
+6. Repack and create the signed ISO
+	```
+	xorriso -indev archlinux.iso -outdev archlinux-signed.iso -map vmlinuz-linux /arch/boot/x86_64/vmlinuz-linux -map_l ./ /EFI/BOOT/ BOOTx64.EFI BOOTIA32.EFI -- -map_l ./ / shellx64.efi shellia32.efi -- -boot_image any replay -append_partition 2 0xef eltorito_img2_uefi.img
+	```
+
+>You should now have a archlinux-signed.iso file that you can use on your system, as it is signed with your registered keys.
