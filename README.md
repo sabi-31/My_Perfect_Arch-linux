@@ -78,7 +78,7 @@ Where archlinux-\<version\>-x86_64.iso.sig is the signature file, and the final 
 
 You need a usb flash drive that can be formmated to hold the installation image.
 
-On windows, use a tool like [Rufus](https://rufus.ie/en/) or [Balena Etcher](https://etcher.balena.io/) . On linux, [KDE ISO Image Write](https://apps.kde.org/isoimagewriter/) or [Gnome Disk Utility](https://gitlab.gnome.org/GNOME/gnome-disk-utility) are some  good Gui applications to do this. Many [more methods](https://wiki.archlinux.org/title/USB_flash_installation_medium) are documented on the wiki. <br>
+On windows, use a tool like [Rufus](https://rufus.ie/en/) ~~or[Balena Etcher](https://etcher.balena.io/)~~ . On linux, [KDE ISO Image Write](https://apps.kde.org/isoimagewriter/) or [Gnome Disk Utility](https://gitlab.gnome.org/GNOME/gnome-disk-utility) are some  good Gui applications to do this. Many [more methods](https://wiki.archlinux.org/title/USB_flash_installation_medium) are documented on the wiki. <br>
 	
 <details style='background-color: #3f50b5;'>
 <summary>Ventoy</summary>
