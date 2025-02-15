@@ -1247,11 +1247,23 @@ Run the below commands in order to:
 		```
 		systemctl --failed
 		```
-	2. Check all the logs generated during boot (latest to oldest). Errors will be listed in red:
+	2. Check Boot times
+		Running the below command will give you the total boot time, broken down into individual components like firmware, bootloader, kernel, etc.
+		```
+		systemd-analyze
+  		```
+
+		If you want a per-service breakdown of boot times, run:
+		```
+  		systemd-analyze blame
+  		```
+		
+  
+ 	4. Check all the logs generated during boot (latest to oldest). Errors will be listed in red:
 		```
 		sudo journalctl -exb
 		```
-	3. System Upgrades
+	5. System Upgrades
 		Upgrade the system regularly for the latest patches and bugfixes. If you are using paru, you can also run the below command to update all pacman and AUR packages.
 		
 		```
@@ -1266,7 +1278,7 @@ Run the below commands in order to:
 
 		Offcourse, read up on release notes and any news before upgrading.
 
-	4. Stay upto date with arch news
+	6. Stay upto date with arch news
 		Due to the nature of arch being a rolling release, I would highly recommend regularly reading up on the lastest news, announcements, and other events.
 
 		1. Subscribe to their mailing list [from here](https://lists.archlinux.org/mailman3/lists/)
