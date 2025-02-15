@@ -378,7 +378,10 @@ I will mount the @mozilla, @ssh, @snapshots and @home-snapshots subvolumes, late
 
 <br>
 
-> Once a subvolume is mounted with a set of options, all other subvoumes follow the same options. This is fine mostly as I need the same options everywhere, except in the @var directory, where I want to have the [Nodatacow](https://www.reddit.com/r/btrfs/comments/n6slx3/what_is_the_advantage_of_nodatacowdisabling_cow/) mount option. 
+> Once a subvolume is mounted with a set of options, all other subvoumes follow the same options, regardless of how you mount them. 
+
+> This is fine mostly as I need the same options everywhere, except in the @var directory, where I want to have the [Nodatacow](https://www.reddit.com/r/btrfs/comments/n6slx3/what_is_the_advantage_of_nodatacowdisabling_cow/) mount option. 
+This is because I do not want compression and datasums on the contents on the var folder, as it's suppoed to contain non-essential data, and disabling CoW can have some performance benefits.
 So I will set the attribute +C on the var directory, which accomplishes the same thing.
 
 Run this command to disbale CoW in the @var subvolume
@@ -869,10 +872,10 @@ sudo refind-install
 <details>
 <summary>Why do I need both rEFInd and systemd-boot? </summary>
 
-- GUI Features
-- Multi OS Support
+- Refind has GUI support.
+- Multi OS Support (Windows, Linux, and MacOS)
 - rEFInd supports Btrfs Snapshot Booting
-- It is customizable
+- It is customizable and can be made to look very pretty.
 - I want the main linux bootloader to do just that, and not have other fancy features, improving realiability.
 </details>
 
@@ -1319,28 +1322,16 @@ Run the below commands in order to:
 	After this you can use a tui or gui app (documented in the link above)
 
 
-5. VS Code
-
-	Install the microsoft provide version using:
-	```
-	paru -S visual-studio-code-vin
-	```
-
-	If using wayland, run the below command to enable wayland and fractional scaling support:
-	```
-	echo '--ozone-platform=wayland' > ~/.config/code-flags.conf
-	```
-
-6. Gaming - WIP
+5. Gaming - WIP
    1. Steam 
    2. Gamescope  
    3. Heroic Games Launcher
    4. Controller Support
    5. [Gamemode](https://github.com/FeralInteractive/gamemode#requesting-gamemode)
 
-7. Virtualization - WIP
+6. Virtualization - WIP
 
-8. [Power Management](https://wiki.archlinux.org/title/Power_management#)
+7. [Power Management](https://wiki.archlinux.org/title/Power_management#)
 
 	You can use a tool like [powertop](https://github.com/fenrus75/powertop) to diagnose and fix any power consumption issues
 
@@ -1354,9 +1345,9 @@ Run the below commands in order to:
 	and enable it using 'rfkill unblock wifi'
 
 
-9. [CPU Frequency Scaling](https://wiki.archlinux.org/title/CPU_frequency_scaling) - WIP
+8. [CPU Frequency Scaling](https://wiki.archlinux.org/title/CPU_frequency_scaling) - WIP
 
-10. Firmware Upgrade
+9. Firmware Upgrade
 
 	Using [fwupd](https://github.com/fwupd/fwupd), you can upgrade the firmware of your hardware devices. 
 	This downloads updates from [Linux Vendor Firmware Service](https://fwupd.org/). 
