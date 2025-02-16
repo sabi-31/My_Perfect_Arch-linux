@@ -938,6 +938,7 @@ You might have to sign more files, if you have installed additional kernels. Use
 
 Now go to your motherboard's firmware setup and enable secure boot. Check if it boots properly or not.
 
+<br><br>
 
 ### 4. Improve Encryption Setup (Optional but Recommended)
 
@@ -1043,7 +1044,7 @@ Now go to your motherboard's firmware setup and enable secure boot. Check if it 
 
 	You should see an entry with "tpm2", along with any other passphrases or keys you enrolled in the Luks drive. Try to reboot your pc and this time you should not have to enter the encryption password.
 
-
+<br><br>
 
 ### 5. Security  (Optional but Recommended)
 
@@ -1084,7 +1085,7 @@ There's a lot you can do in terms of hardening your system, here are some of the
 
 	While these are recommneded to be used, I have not personally used them, so I can't give any recommendations right now. If you think you need them, read up on it and use it. I will also use it and maybe update the guide with my learnings.
 
-
+<br><br>
 
 ### 6. Refind BTRFS (Skip for now)
 
@@ -1094,6 +1095,7 @@ paru -S refind-btrfs
 sudo systemctl enable --now refind-btrfs
 ```
 
+<br><br>
 
 ### 7. Snapper and snapshots
 > Alright, all the efforts we put into btrfs and subvolumes, will help us now.
@@ -1216,6 +1218,7 @@ Run the below commands in order to:
 > At this point we have a system with a lot of modern features and a good base install, while also having the capability to rollback in case of any issues. 
 
 > You can stop using the guide now and make most of the further decisions on your own as to what type of Desktop Environment, Apps, Theming and Workflow you prefer. I will document my own rice and dotfiles in [Another Repo](https://github.com/sabi-31/My_Arch-Linux_Dotfiles) (Hyprland).
+
 ---
 ---
 
@@ -1246,7 +1249,7 @@ Run the below commands in order to:
 	```
 	sudo systemctl start fstrim.service
 	```
-
+<br><br>
 
 2. General Maintainence
 	
@@ -1305,6 +1308,8 @@ Run the below commands in order to:
 			informant read -> Marks unread news as read, post which you can upgrade using pacman.
 			```
 
+  <br><br> 
+
 3.  Help the community
 
 	You can send an anonymized list of all installed packages, the architecture and the mirror you are using as feedback to the arch project.
@@ -1316,6 +1321,7 @@ Run the below commands in order to:
 
 	After this, it will automatically enable a timer that will run the service weekly.
 
+<br><br>
 
 4. [Bluetooth](https://wiki.archlinux.org/title/Bluetooth)
 
@@ -1327,6 +1333,7 @@ Run the below commands in order to:
 
 	After this you can use a tui or gui app (documented in the link above)
 
+<br><br>
 
 5. Gaming - WIP
    1. Steam 
@@ -1335,7 +1342,11 @@ Run the below commands in order to:
    4. Controller Support
    5. [Gamemode](https://github.com/FeralInteractive/gamemode#requesting-gamemode)
 
+<br><br>
+
 6. Virtualization - WIP
+
+<br><br>
 
 7. [Power Management](https://wiki.archlinux.org/title/Power_management#)
 
@@ -1350,8 +1361,11 @@ Run the below commands in order to:
 
 	and enable it using 'rfkill unblock wifi'
 
+<br><br>
 
 8. [CPU Frequency Scaling](https://wiki.archlinux.org/title/CPU_frequency_scaling) - WIP
+
+<br><br>
 
 9. Firmware Upgrade
 
