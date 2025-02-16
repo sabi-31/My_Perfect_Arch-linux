@@ -225,7 +225,7 @@ DISK=/dev/nvme1n1p
 <br><br>
 
 
-### 5. Encryption
+### 5. Encryption (Optional but recommended)
 Now we will encrypt the root partition with LUKS2.
 
 > When we use luks to encrypt our drive with a password or a key, what it does is create a header. This header is what actually encrypts and decrypts the drive. 
@@ -269,13 +269,14 @@ You can check the flags that your drive is opened with using:
 cryptsetup luksDump ${DISK}2 | grep Flags
 ```
 
-> I will be relying on systemd-boot to automatically recognize and try to decrypt the root partition. If you decide to use grub, you have to so some more setup in the crypttab file. [Read More](https://bbs.archlinux.org/viewtopic.php?id=290148)
 
 
 <br><br>
 
 
 ### 6. Format your Partitions
+
+>If you encrypted your root paritition, your new root partition is /dev/mapper/root. If you didn't, it going to be ${DISK}2. Substitute it in the appropritate places. I'll be using /dev/mapper/root.
 
 Now I will format the efi partition as  Fat32 and the Root partition as BTRFS filesystem.
 
@@ -371,12 +372,7 @@ mount -o subvol=@opt /dev/mapper/root /mnt/opt
 mount -o subvol=@var /dev/mapper/root /mnt/var
 ```
 
-[Read more about various BTRFS mount Options.](https://btrfs.readthedocs.io/en/stable/Administration.html#mount-options)
-
-
-I will mount the @mozilla, @ssh, @snapshots and @home-snapshots subvolumes, later in the guide.
-
-<br>
+[Read more about various BTRFS mount Options](https://btrfs.readthedocs.io/en/stable/Administration.html#mount-options). If you want to change any of the mount options, you can do so. It's not going to break anything.
 
 > Once a subvolume is mounted with a set of options, all other subvoumes follow the same options, regardless of how you mount them. 
 
@@ -389,6 +385,11 @@ Run this command to disbale CoW in the @var subvolume
 ```
 chattr +C /mnt/var
 ```
+
+I will mount the @mozilla, @ssh, @snapshots and @home-snapshots subvolumes, later in the guide.
+
+<br>
+
 
 Mount the efi partition using:
 
@@ -417,6 +418,7 @@ Now, I will install the base required packages for an Arch Linux install using t
 pacman -Sy archlinux-keyring
 pacstrap -K /mnt base base-devel linux linux-firmware amd-ucode cryptsetup btrfs-progs dosfstools posix util-linux networkmanager sudo openssh vim reflector rsync arch-install-scripts xdg-user-dirs 
 ```
+
 > Some of these packages are mandatory, others are essential. You can lookup what they do in case you're curious.
 
 
@@ -462,7 +464,7 @@ arch-chroot /mnt
 	systemd-firstboot --prompt
 	```
 
-3. Pacman
+3. Pacman (Optional but recommended)
 
 	1. Improve pacman defaults:
 			
@@ -553,7 +555,7 @@ arch-chroot /mnt
 	mount -o subvol=@ssh /dev/mapper/root /home/sabino/.ssh
 	chown -R sabino:sabino /home/sabino/*
 	```
-5. Create Default Home folders:
+5. Create Default Home folders (Downloads, Documents, etc.) :
 	```
 	xdg-user-dirs-update
 	```
@@ -583,7 +585,7 @@ However, I will still manually define my mount points in fstab. This is because:
 
 <br><br>
 
-### 13. Swap on Zram
+### 13. Swap on Zram (Optional but recommended)
 For swap, I will use swap on zram instead of a separate swap partition. [Read More](https://wiki.archlinux.org/title/Zram)
 
 How it works is, when there are files on your RAM that are not actively being used, they can be compressed stored on Zram. While Zram uses part of RAM to store data, it compresses the data very efficiently so overall we get more performance. It's better than swap on a disk as RAM is faster than a disk.
@@ -634,7 +636,7 @@ I did have troubles waking my system back up after suspending it (It seems to be
 
 <br><br>
 
-### 14. Generate Unified Kernel Images
+### 14. Generate Unified Kernel Images (Optional but HIGHLY recommended, there's no downside to doing this, the benefits are many.)
 [Unified Kernel Images](https://wiki.archlinux.org/title/Unified_kernel_image) is a concept of combining the kernel, microcode, and other binaries needed during boot, and generating a single efi file to boot from. This helps in maintainence also helps with secure boot management.
 
 While this may sound difficult, it's been made very easy by various tools. I will use [mkinitcpio](https://wiki.archlinux.org/title/Mkinitcpio) in this guide. By just changing a few Configuration options, it will be set up to generate the UKI's automatically when any of the component files are updated.
@@ -730,6 +732,9 @@ My file looks like this:
 
 
 ### 16. Bootloader Installation
+
+> I will be installing systemd-boot relying on it to automatically recognize and try to decrypt the root partition. If you decide to use grub, you have to so some more setup in the crypttab file. [Read More](https://bbs.archlinux.org/viewtopic.php?id=290148)
+
 In this step, I will install the systemd-boot bootloader on the /efi partition. Then I will reboot to the Motherboard settings:
 
 ```
@@ -738,6 +743,7 @@ sync
 exit 
 systemctl reboot --firmware-setup
 ```
+
 
 In the Firmware setup menu, select the entry for Arch/The Disk as the **First Priority Entry** and Save the settings.
 You will be asked to enter the disk encryption password, post which you can login and use the your new Arch System.
@@ -755,7 +761,7 @@ You will be asked to enter the disk encryption password, post which you can logi
 
 Boot into your system, and login as your user.
 
-Before we start, we need to connect to the network (wifi). If you have ethernet, you can skip this. For wifi users, who are using Network Manager, run:
+Before we start, the system needs to connected to the network (wifi). If you have ethernet, you can skip this. For wifi users, who are using Network Manager, run:
 ```
 nmcli radio wifi on
 nmcli dev wifi list
@@ -784,7 +790,7 @@ substitue \<wifi-name> for wifi name and enter password to connect.
 	#### <mark style='background-color:rgb(46, 152, 154)'> Nvidia GPU:</mark>
 	>I don't have an Nvidia GPU, so you have to test this part yourself, refer to this [link](https://github.com/korvahannu/arch-nvidia-drivers-installation-guide).
 	
-2. AUR Helper
+2. AUR Helper (Optional but recommended)
 	>I will install [paru](https://github.com/Morganamilo/paru) to help me download and install AUR packages. See also: [Yay](https://github.com/Jguer/yay)
 				
 	```
@@ -801,28 +807,22 @@ substitue \<wifi-name> for wifi name and enter password to connect.
 	
 	>After this step, you will be able to use the command *paru -S \<package-name>* to install a package from the[AUR](https://aur.archlinux.org/). Be very careful installing packages from here.
 
-3. Shell and Fonts (Optional)
-
-	```
-	sudo pacman -S zsh ttf-jetbrains-mono-nerd
-	```
-
-4. Audio
+3. Audio
 		
 	```
 	sudo pacman -S pipewire pipewire-pulse pavucontrol
 	```
 
-	>These won't be really relevant until we install a DE.
+	>These won't be really relevant until we install a DE. Pavucontrol is a GUI for controlling audio, it makes it very easy to use.
 
-5. Utilities
+5. Utilities (Optional but HIGHLY recommended)
 			
 	```
 	sudo pacman -S git locate udisks2 unzip man-db man-pages wget htop
 	```
 
 
-6. Flatpaks
+6. Flatpaks (Optional but HIGHLY recommended)
 	
 	```
 	sudo pacman -S flatpak
@@ -859,15 +859,19 @@ substitue \<wifi-name> for wifi name and enter password to connect.
 	```
 	sudo pacman -Sy
 	```
+ 
 <br><br>
 
-### 2. Install rEFInd
+### 2. Install rEFInd (Optional but HIGHLY recommended)
+
 Refind is a boot manager. Simply put, when starting your PC, it will allow you to choose between Windows and Linux. It can also be themed to make the boot process look pretty.
+
 ```
 sudo pacman -S refind
 sudo refind-install
 ```
->Once you run the second command, refind should set itself as the primary boot option. If it doesn't, you can change it in the motherboard settings. But because of this, you should now see multiple options during boot, including the ability to choose between windows and arch. For Arch, I recommend using the systemd-boot option, instead of the kernel option. You can hide any options you don't want using the 'Escape' Key.
+
+>Once you run the second command, refind should set itself as the primary boot option. If it doesn't, you can change it in the motherboard settings. But because of this, you should now see multiple options during boot, including the ability to choose between windows and arch. For Arch, I recommend using the systemd-boot option, instead of the kernel option. You can hide any options you don't want using the 'Delete' Key.
 
 <details>
 <summary>Why do I need both rEFInd and systemd-boot? </summary>
@@ -876,13 +880,16 @@ sudo refind-install
 - Multi OS Support (Windows, Linux, and MacOS)
 - rEFInd supports Btrfs Snapshot Booting
 - It is customizable and can be made to look very pretty.
-- I want the main linux bootloader to do just that, and not have other fancy features, improving realiability.
+- I want the main linux bootloader to do just that, and not have other fancy features and changes in configuration, improving realiability.
 </details>
 
 
 <br><br>
 
-### 3. Setup Secure Boot
+### 3. Setup Secure Boot (Optional but recommended)
+
+>I won't explain what secure boot is, but it's really not necessary for a linux distro, period. If you're dual booting Windows, it's needed in the newer versions (11) and also some games using kernel level anticheat like Valorant need it. There aren't any downsides to having it enabled, and since it's super easy these days to setup on linux, so why not?
+
 We will generate our own secure boot keys, enroll them in our Motherboard firmware, and sign our kernel modules and other efi binaries with them. There's an amazing tool known as [sbctl](https://github.com/Foxboron/sbctl) which does most of the heavy lifting for us.
 
 ```
@@ -932,7 +939,7 @@ You might have to sign more files, if you have installed additional kernels. Use
 Now go to your motherboard's firmware setup and enable secure boot. Check if it boots properly or not.
 
 
-### 4. Improve Encryption Setup 
+### 4. Improve Encryption Setup (Optional but Recommended)
 
 1. Backup LUKS Headers
 
@@ -951,7 +958,7 @@ Now go to your motherboard's firmware setup and enable secure boot. Check if it 
 	cryptsetup luksHeaderRestore /dev/device --header-backup-file /path-to/luks-header-backup.img
 	```
 
-2. Manage Keyslots (Optional but Recommended):
+2. Manage Keyslots:
 
 	While we normally use a passord to unlock the luks header, it can support multiple unlocking options, one of which is a keyfile. 
 	
@@ -1038,12 +1045,11 @@ Now go to your motherboard's firmware setup and enable secure boot. Check if it 
 
 
 
+### 5. Security  (Optional but Recommended)
 
+To start with this section, first read the [Arch wiki article on security](https://wiki.archlinux.org/title/Security).
 
-### 5. Security
-To start with this section, first read the [arch wiki article on security](https://wiki.archlinux.org/title/Security).
-
-Another good [article on hardening arch linux](https://vez.mrsk.me/linux-hardening).
+Another good [Article on hardening arch linux](https://vez.mrsk.me/linux-hardening).
 
 There's a lot you can do in terms of hardening your system, here are some of the simple things:
 
@@ -1080,9 +1086,9 @@ There's a lot you can do in terms of hardening your system, here are some of the
 
 
 
-### 6. Refind BTRFS
+### 6. Refind BTRFS (Skip for now)
 
-<mark style="background-color: #f44336;"> This doesn't work currently due to the use of unified kernel images. You can choose to skip this step, as it has no utility currently. I am looking for an alternative or a fix to this.</mark>
+<mark style="background-color: #f44336;"> This doesn't work currently due to the use of unified kernel images and encryption [Read More](https://github.com/Venom1991/refind-btrfs/issues/32). You can skip this step, as it has no utility currently. I am looking for an alternative or a fix to this.</mark>
 ```
 paru -S refind-btrfs
 sudo systemctl enable --now refind-btrfs
@@ -1209,7 +1215,7 @@ Run the below commands in order to:
 
 > At this point we have a system with a lot of modern features and a good base install, while also having the capability to rollback in case of any issues. 
 
-> You can stop using the guide now and make most of the further decisions on your own as to what type of Desktop Environment, Apps, Theming and Workflow you prefer. I will document my own rice and dotfiles in another Repo (Hyprland).
+> You can stop using the guide now and make most of the further decisions on your own as to what type of Desktop Environment, Apps, Theming and Workflow you prefer. I will document my own rice and dotfiles in [Another Repo](https://github.com/sabi-31/My_Arch-Linux_Dotfiles) (Hyprland).
 ---
 ---
 
@@ -1242,7 +1248,7 @@ Run the below commands in order to:
 	```
 
 
-2. General Maintainence:
+2. General Maintainence
 	
 	[Read the full article from the wiki](https://wiki.archlinux.org/title/System_maintenance)
 
