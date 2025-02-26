@@ -317,11 +317,13 @@ This is the subvolume layout I personally use, and which has worked well for me:
 | @home | /home |  Home Folder where all your Data/Games/Configurations will reside. |
 | @mozilla | /home/$USER/.mozilla | The directory where your firefox data is stored. If you ever rollback your home directory, this will prevent any potential loss of browsing data. |
 | @ssh | /home/$USER/.ssh | Same as above, to protect any ssh keys/configs you have. |
+| @games| /home/$USER/Games | All my games will be installed here to avoid issues when rolling back home. |
 | @opt | /opt |  This is where third party applications are installed.|
 | @var | /var |  Where all temporary files/logs/cache is stored. |
 | @snapshots | /.snapshots |  This subvolume will store snapshots of our @ subvolume (Managed via Snapper). |
 | @home-snapshots | /home/.snapshots | This subvolume will store snapshots of our @home subvolume (Managed via Snapper). |
 
+>Steam by default uses another folders to download games, but this can very easily be changed. Apps like Heroic Games Launcher by default use the /home/$USER/Games folder, so no issues there.
 
 >I am making the whole of */var* into one subvolume. This is not recommended by arch, as pacman stores it's cache in the */var/cache/pacman* directory. 
 But I am going to configure pacman cache to be in the */tmp* directory, you can read the rationale behind this in this [reddit post](https://www.reddit.com/r/archlinux/comments/1hgbl1k/what_is_varcachepackagepkg_and_why_is_it_so_large/). 
@@ -334,7 +336,7 @@ Run the below commands to mount the root subvolume and create all the other subv
 ```
 mount /dev/mapper/root /mnt
 cd /mnt
-btrfs subvolume create {@,@home,@mozilla,@ssh,@var,@opt,@snapshots,@home-snapshots}
+btrfs subvolume create {@,@home,@mozilla,@ssh,@games,@var,@opt,@snapshots,@home-snapshots}
 btrfs subvolume list /mnt
 ```
 
@@ -367,6 +369,7 @@ Mount all the subvolumes you created using the below commands:
 ```
 umount /mnt
 mount -o defaults,noatime,space_cache=v2,ssd,compress-force=zstd:1,commit=120,subvol=@ /dev/mapper/root /mnt
+mkdir /mnt/{home,opt,var}
 mount -o subvol=@home /dev/mapper/root /mnt/home
 mount -o subvol=@opt /dev/mapper/root /mnt/opt
 mount -o subvol=@var /dev/mapper/root /mnt/var
@@ -386,7 +389,7 @@ Run this command to disbale CoW in the @var subvolume
 chattr +C /mnt/var
 ```
 
-I will mount the @mozilla, @ssh, @snapshots and @home-snapshots subvolumes, later in the guide.
+I will mount the @mozilla, @ssh, @games, @snapshots and @home-snapshots subvolumes, later in the guide.
 
 <br>
 
@@ -395,7 +398,7 @@ Mount the efi partition using:
 
 ```
 mkdir -p /mnt/efi
-mount -o defaults,fmask=0077,dmask=0077 /dev/{DISK}1 /mnt/efi
+mount -o defaults,fmask=0077,dmask=0077 {DISK}1 /mnt/efi
 ```
 
 
@@ -548,9 +551,10 @@ arch-chroot /mnt
 	But don't have too much fun with it, if you enter a wrong password 3 times, you will not be able to use the sudo command for some time (10 mins normally). 
 
 
-4. Mount 2 of the remaining 4 subvolumes, (replace sabino with whatever username you chose):
+4. Mount 3 of the remaining 5 subvolumes, (replace sabino with whatever username you chose):
 	```
-	mkdir /home/sabino/{.mozilla,.ssh}
+	mkdir /home/sabino/{.mozilla,.ssh,Games}
+ 	chown -R sabino:sabino /home/sabino/*
 	mount -o subvol=@mozilla /dev/mapper/root /home/sabino/.mozilla
 	mount -o subvol=@ssh /dev/mapper/root /home/sabino/.ssh
 	chown -R sabino:sabino /home/sabino/*
