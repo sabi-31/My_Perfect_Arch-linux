@@ -398,7 +398,7 @@ Mount the efi partition using:
 
 ```
 mkdir -p /mnt/efi
-mount -o defaults,fmask=0077,dmask=0077 {DISK}1 /mnt/efi
+mount -o defaults,fmask=0077,dmask=0077 ${DISK}1 /mnt/efi
 ```
 
 
